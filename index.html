@@ -258,6 +258,107 @@ main{max-width:1080px;margin:0 auto;padding:24px 16px 64px}
 .hp{position:absolute;left:-10000px;width:1px;height:1px;overflow:hidden}
 footer{max-width:1080px;margin:0 auto;padding:0 16px 32px;color:var(--faint);font-size:13px;display:flex;gap:12px;flex-wrap:wrap;justify-content:space-between}
 [hidden]{display:none!important}
+body.invite-mode .top nav, body.invite-mode .share, body.invite-mode [data-copy], body.invite-mode .back-portal{display:none!important}
+.invite-strip{display:flex;gap:10px;align-items:center;background:var(--gold-soft);border:1px solid #ecd29a;color:#5b3d07;border-radius:8px;padding:10px 12px;font-size:14px;margin:14px 0 0}
+
+/* Locked (no invitation) */
+.lock{max-width:560px;margin:6vh auto 0;text-align:center}
+.lock img{width:150px;margin:0 auto 12px}
+.lock h1{font-family:var(--head);text-transform:uppercase;font-size:34px;margin:0 0 8px}
+.lock p{color:var(--ink-2);margin:0 auto 10px;max-width:460px}
+.lock .staff-link{margin-top:22px;font-size:14px;color:var(--muted)}
+
+/* ===== Staff dashboard ===== */
+body.staff-mode main{max-width:1240px}
+body.staff-mode .top nav{display:flex}
+.who{font-size:13px;color:#d8cfbb;margin-left:auto;display:flex;gap:10px;align-items:center}
+.who b{color:var(--bone);font-weight:600}
+.dash-head{display:flex;gap:16px;align-items:flex-end;justify-content:space-between;flex-wrap:wrap;margin:6px 0 18px}
+.dash-head h1{font-family:var(--head);text-transform:uppercase;font-size:34px;line-height:1;margin:0}
+.dash-head p{margin:4px 0 0;color:var(--muted);font-size:14px}
+.dash-actions{display:flex;gap:8px;flex-wrap:wrap}
+.dash-actions .btn{min-height:40px;padding:8px 14px;font-size:14px}
+.kpis{display:grid;grid-template-columns:repeat(6,1fr);gap:12px;margin-bottom:18px}
+@media (max-width:1100px){.kpis{grid-template-columns:repeat(3,1fr)}}
+@media (max-width:560px){.kpis{grid-template-columns:repeat(2,1fr)}}
+.kpi{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:14px 16px;box-shadow:var(--shadow);text-align:left;cursor:pointer;font:inherit;color:inherit}
+.kpi:hover{border-color:var(--gold)}
+.kpi b{display:block;font-family:var(--head);font-size:34px;line-height:1;font-variant-numeric:tabular-nums}
+.kpi span{display:block;font-size:13px;color:var(--muted);margin-top:6px;line-height:1.3}
+.kpi.hot b{color:var(--gold-ink)}
+.dash-grid{display:grid;grid-template-columns:360px 1fr;gap:18px;align-items:start}
+@media (max-width:980px){.dash-grid{grid-template-columns:1fr}}
+.card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:18px}
+.card h2{font-family:var(--head);text-transform:uppercase;font-size:22px;margin:0 0 4px;letter-spacing:.03em}
+.card .sub{color:var(--muted);font-size:14px;margin:0 0 8px}
+.send-card{border-top:5px solid var(--gold);position:sticky;top:12px}
+@media (max-width:980px){.send-card{position:static}}
+.send-card .field{padding:8px 0}
+.seg{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.seg .choice{flex-direction:column;gap:2px;padding:10px 12px}
+.seg .choice input{position:absolute;opacity:0;pointer-events:none}
+.seg .choice b{font-size:15px}
+.seg .choice small{font-size:12px}
+.sent-box{margin-top:12px}
+.sent-box .linkrow{display:flex;gap:6px;margin-top:8px}
+.sent-box .linkrow input{flex:1;min-height:38px;font-size:13px;padding:6px 10px}
+.tabs{display:flex;gap:4px;border-bottom:1px solid var(--line);margin:-4px -4px 12px;padding:0 4px;overflow-x:auto}
+.tabs button{border:none;background:none;padding:10px 12px;font-weight:700;font-size:14px;color:var(--muted);border-bottom:3px solid transparent;cursor:pointer;white-space:nowrap}
+.tabs button[aria-selected=true]{color:var(--ink);border-bottom-color:var(--gold)}
+.tabs .n{font-size:11px;background:var(--line-2);border-radius:999px;padding:1px 7px;margin-left:4px;color:var(--muted)}
+.toolbar{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px}
+.toolbar .input,.toolbar .select{min-height:40px;padding:8px 12px;font-size:14px}
+.toolbar .input{flex:1;min-width:180px}
+.toolbar .select{width:auto;min-width:170px}
+.tbl{width:100%;border-collapse:collapse;font-size:14px}
+.tbl th{text-align:left;font-size:12px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);font-weight:700;padding:8px 10px;border-bottom:1px solid var(--line);white-space:nowrap}
+.tbl td{padding:10px;border-bottom:1px solid var(--line-2);vertical-align:top}
+.tbl tr.click{cursor:pointer}
+.tbl tr.click:hover td{background:#fbf8f1}
+.tbl td small{display:block;color:var(--muted);font-size:12.5px}
+.tbl .mono{font-variant-numeric:tabular-nums;font-weight:700;white-space:nowrap}
+.tbl .acts{white-space:nowrap;text-align:right}
+.tbl .acts .btn-link{font-size:13px}
+.empty{padding:34px 10px;text-align:center;color:var(--muted)}
+@media (max-width:760px){
+  .tbl thead{display:none}
+  .tbl tr{display:block;border:1px solid var(--line);border-radius:10px;margin-bottom:8px;padding:6px 4px}
+  .tbl td{display:flex;justify-content:space-between;gap:12px;border:none;padding:5px 10px}
+  .tbl td::before{content:attr(data-l);font-size:12px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.05em;flex:none}
+  .tbl td > div{text-align:right}
+  .tbl .acts{justify-content:flex-end}
+  .tbl .acts::before{content:none}
+}
+.pager{display:flex;justify-content:space-between;align-items:center;margin-top:10px;font-size:13px;color:var(--muted)}
+.pager .btn{min-height:36px;padding:6px 12px;font-size:13px}
+.chip{display:inline-block;font-size:12px;font-weight:700;border-radius:999px;padding:3px 9px;white-space:nowrap;background:var(--line-2);color:var(--ink-2)}
+.chip.New,.chip.Sent{background:#fbf1dc;color:#8a5c10}
+.chip.Opened,.chip.Under-Review,.chip.In-Progress{background:#e6eef7;color:#244a72}
+.chip.More-Information-Required{background:#fdebd7;color:#8a4310}
+.chip.Approved,.chip.Completed,.chip.Fulfilled{background:var(--ok-soft);color:var(--ok)}
+.chip.Rejected,.chip.Revoked{background:var(--err-soft);color:var(--err)}
+.chip.Archived,.chip.Expired,.chip.Not-Needed{background:#ecebe8;color:#6b6760}
+dialog.drawer{position:fixed;inset:0 0 0 auto;margin:0;height:100%;max-height:100%;width:min(680px,100%);border:none;padding:0;background:var(--paper);box-shadow:-10px 0 40px rgba(0,0,0,.18)}
+dialog.drawer::backdrop{background:rgba(34,32,29,.45)}
+.drawer-head{position:sticky;top:0;background:var(--char);color:var(--bone);padding:16px 20px;display:flex;gap:12px;align-items:flex-start;z-index:2}
+.drawer-head h2{font-family:var(--head);text-transform:uppercase;font-size:24px;margin:0;line-height:1.05}
+.drawer-head p{margin:4px 0 0;font-size:13px;color:#d8cfbb}
+.drawer-head .x{margin-left:auto;background:var(--char-2);color:var(--bone);border:none;border-radius:6px;width:36px;height:36px;font-size:20px;cursor:pointer;flex:none}
+.drawer-body{padding:16px 20px 40px}
+.panel{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:14px 16px;margin-bottom:12px}
+.panel h3{margin:0 0 8px;font-size:15px}
+.panel .row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.panel .select{width:auto;min-width:220px;min-height:42px;padding:8px 12px}
+.panel .textarea{min-height:70px;margin-top:8px}
+.panel .btn{min-height:42px;padding:8px 14px;font-size:14px}
+.kv{display:grid;grid-template-columns:minmax(150px,36%) 1fr;gap:6px 14px;font-size:14px;margin:0}
+.kv dt{color:var(--muted)}
+.kv dd{margin:0;white-space:pre-line;word-break:break-word}
+@media (max-width:520px){.kv{grid-template-columns:1fr}.kv dt{margin-top:6px}}
+.docs{list-style:none;padding:0;margin:0;display:flex;flex-direction:column;gap:6px}
+.docs li{display:flex;justify-content:space-between;gap:10px;border:1px solid var(--line-2);border-radius:8px;padding:8px 10px;font-size:14px}
+.docs li small{display:block;color:var(--muted)}
+.docs a{font-weight:700;white-space:nowrap}
 </style>
 </head>
 <body>
@@ -382,6 +483,68 @@ footer{max-width:1080px;margin:0 auto;padding:0 16px 32px;color:var(--faint);fon
     </div>
   </section>
 
+  <!-- ===================== LOCKED (no invitation) ===================== -->
+  <section id="view-locked" hidden>
+    <div class="lock">
+      <img data-logo alt="GoodPWR logo">
+      <h1 id="lock-title">By invitation only</h1>
+      <p id="lock-msg">This GoodPWR portal is opened from a personal invitation link. Please use the link in the email GoodPWR sent you.</p>
+      <p>Need a new link? Email <a id="lock-support" href="mailto:Operations@getgoodpwr.com">Operations@getgoodpwr.com</a>.</p>
+      <p class="staff-link" id="lock-staff" hidden>GoodPWR staff? <a id="lock-staff-a" href="#">Open the dashboard</a> (sign in with your @getgoodpwr.com account).</p>
+    </div>
+  </section>
+
+  <!-- ===================== STAFF DASHBOARD (only inside Apps Script) ===================== -->
+  <section id="view-staff" hidden>
+    <div class="dash-head">
+      <div><h1>Partner Portal Dashboard</h1><p>Send forms to clients, track who still needs to complete them, and review submissions.</p></div>
+      <div class="dash-actions">
+        <a class="btn btn-ghost" id="s-sheet" href="#" target="_blank" rel="noopener">Open database</a>
+        <button class="btn btn-ghost" type="button" id="s-refresh">Refresh</button>
+      </div>
+    </div>
+    <div id="s-setup"></div>
+    <div class="kpis" id="s-kpis"></div>
+    <div class="dash-grid">
+      <form class="card send-card" id="s-send" novalidate>
+        <h2>Send a form</h2>
+        <p class="sub">The client gets an email with a personal link. You'll be notified when they finish.</p>
+        <div class="field" data-field="formType">
+          <div class="lbl">Which form? <span class="req">*</span></div>
+          <div class="seg" role="radiogroup" aria-label="Form">
+            <label class="choice"><input type="radio" name="formType" value="prospect"><b>Prospect</b><small>Interest form · ~3 min</small></label>
+            <label class="choice"><input type="radio" name="formType" value="onboarding" checked><b>Onboarding</b><small>Full onboarding · ~15 min</small></label>
+          </div>
+          <div class="err" id="s-formType-err"></div>
+        </div>
+        <div class="field" data-field="email"><label for="s-email">Client email <span class="req">*</span></label><input class="input" id="s-email" name="email" type="email" inputmode="email" autocomplete="off" placeholder="name@company.com" maxlength="254"><div class="err" id="s-email-err"></div></div>
+        <div class="field" data-field="name"><label for="s-name">Client name <span class="req">*</span></label><input class="input" id="s-name" name="name" type="text" autocomplete="off" maxlength="120"><div class="err" id="s-name-err"></div></div>
+        <div class="field" data-field="company"><label for="s-company">Company <span class="opt">Optional</span></label><input class="input" id="s-company" name="company" type="text" autocomplete="off" maxlength="160"><div class="err" id="s-company-err"></div></div>
+        <div class="field" data-field="message"><label for="s-message">Personal note <span class="opt">Optional</span></label><textarea class="textarea" id="s-message" name="message" rows="3" maxlength="1000" placeholder="Shown in the email, e.g. “Great talking today — here’s the onboarding form.”"></textarea><div class="err" id="s-message-err"></div></div>
+        <div id="s-send-alert" role="alert"></div>
+        <button class="btn btn-primary" type="submit" id="s-send-btn" style="width:100%;margin-top:6px">Send invitation</button>
+        <div id="s-sent" class="sent-box" aria-live="polite"></div>
+      </form>
+      <div class="card">
+        <div class="tabs" role="tablist">
+          <button type="button" role="tab" data-tab="invites" aria-selected="true">Invitations</button>
+          <button type="button" role="tab" data-tab="onboarding" aria-selected="false">Onboarding</button>
+          <button type="button" role="tab" data-tab="prospect" aria-selected="false">Prospects</button>
+        </div>
+        <div class="toolbar">
+          <input class="input" type="search" id="s-q" placeholder="Search name, email, company, reference…" aria-label="Search">
+          <select class="select" id="s-status" aria-label="Filter by status"><option value="">All statuses</option></select>
+        </div>
+        <div id="s-list" aria-live="polite"></div>
+        <div class="pager" id="s-pager"></div>
+      </div>
+    </div>
+    <dialog class="drawer" id="s-drawer" aria-labelledby="d-title">
+      <div class="drawer-head"><div><h2 id="d-title">Loading…</h2><p id="d-sub"></p></div><button class="x" type="button" id="d-close" aria-label="Close">×</button></div>
+      <div class="drawer-body" id="d-body"></div>
+    </dialog>
+  </section>
+
   <div id="view-loading" class="loading" hidden><span class="spin" aria-hidden="true"></span><span>Loading the portal…</span></div>
   <div id="view-error" hidden></div>
 </main>
@@ -395,7 +558,7 @@ footer{max-width:1080px;margin:0 auto;padding:0 16px 32px;color:var(--faint);fon
 <script>
 /* =========================================================================
    GoodPWR Build Partner Portal — frontend
-   ONLY setting you must change: API_URL (https://script.google.com/macros/s/AKfycbwmFvIGjCzdcS8gAIxSrBh9vQ6-ss_RgdnH-9PKi_Is028gssuuWs7ou8HF4CDrsC0Z/exec).
+   ONLY setting you must change: API_URL (your Apps Script /exec URL).
    ========================================================================= */
 'use strict';
 
@@ -406,11 +569,14 @@ document.getElementById('favicon').href = LOGO_SRC;
 
 const API_URL = 'https://script.google.com/macros/s/AKfycbwmFvIGjCzdcS8gAIxSrBh9vQ6-ss_RgdnH-9PKi_Is028gssuuWs7ou8HF4CDrsC0Z/exec';
 const API_VERSION = 1;
-const CLIENT_VERSION = '1.0.0';
+const CLIENT_VERSION = '1.1.0';
+/* Same file runs in two places: GitHub Pages (client forms) and inside Apps Script (staff dashboard). */
+const IS_STAFF = typeof google !== 'undefined' && !!(google.script && google.script.run);
+let INVITE = null;   // { token, formType, clientName, clientEmail, company }
 
 /* ---------- Preview defaults (used ONLY while API_URL is not set) ---------- */
 const PREVIEW_CONFIG = {
-  acceptingProspects: true, acceptingOnboarding: true, supportEmail: 'Operations@getgoodpwr.com',
+  acceptingProspects: true, acceptingOnboarding: true, requireInvite: false, dashboardUrl: '', supportEmail: 'Operations@getgoodpwr.com',
   services: ['Main Panel Upgrade','Battery Install','Site Survey','Roll Comp Install','Comp Shingle Roof Install','Metal Roof Install','Ground Mount Install','Troubleshoot & System Repairs'],
   systemExperience: ['Enphase','SolarEdge','Tesla','LG Chem','Unirac','SunModo','IronRidge','SnapNrack','QuickBOLT'],
   classifications: ['Electrical Contractor','Solar Contractor','Roofing Contractor','General Contractor','Master Electrician','Journeyman Electrician','NABCEP Certified'],
@@ -689,6 +855,17 @@ function wireDynamic(root, fields, onChange) {
   return refresh;
 }
 
+function prefillFromInvite(root, map) {
+  if (!INVITE) return;
+  Object.keys(map).forEach(k => { const el = $(`[name="${map[k]}"]`, root); if (el && !el.value && INVITE[k]) el.value = INVITE[k]; });
+  const head = root.closest('.form-body');
+  if (head && !$('.invite-strip', head)) {
+    const d = document.createElement('div'); d.className = 'invite-strip';
+    d.innerHTML = `<span aria-hidden="true">✉</span><span>Personal invitation from GoodPWR${INVITE.company ? ' for <b>' + esc(INVITE.company) + '</b>' : ''}. Please don’t share this link.</span>`;
+    head.insertBefore(d, head.firstChild);
+  }
+}
+
 function prefillFromUrl(root, map) {
   const q = new URLSearchParams(location.search);
   Object.keys(map).forEach(param => {
@@ -721,13 +898,14 @@ function doneHtml(title, ref, extra) {
       <div class="alert info"><b>What happens next:</b> ${esc(next)}<br>Submitting this form does <b>not</b> mean your company is approved yet — our team will review it first.</div>
       ${extra || ''}
     </div>
-    <p style="margin-top:18px"><a class="btn btn-ghost" href="#">Back to portal</a></p>
+    <p style="margin-top:18px" class="back-portal"><a class="btn btn-ghost" href="#">Back to portal</a></p>
   </div>`;
 }
 
 /* =========================================================================
    FORM 1 — PROSPECTIVE BUILD PARTNERS
    ========================================================================= */
+const draftKey = base => base + (INVITE ? '_' + INVITE.token.slice(0, 12) : '');
 const Prospect = {
   key: 'gp_prospect_draft',
   fields: null,
@@ -758,12 +936,14 @@ const Prospect = {
   },
   init() {
     const root = $('#prospect-form');
+    this.key = draftKey('gp_prospect_draft');
     $('#p-fields').innerHTML = renderSections(this.sections(), 'p');
     let draft = store.get(this.key);
     if (!draft || !draft.submissionKey) draft = { submissionKey: uuid(), startedAt: Date.now(), values: {} };
     this.draft = draft;
     writeValues(root, this.fields, draft.values);
     prefillFromUrl(root, { company: 'company', contact: 'contact', name: 'contact', email: 'email', phone: 'phone' });
+    prefillFromInvite(root, { clientName: 'contact', company: 'company', clientEmail: 'email' });
     let saveT;
     let firstRun = true;
     wireDynamic(root, this.fields, vals => {
@@ -784,14 +964,15 @@ const Prospect = {
     this.busy = true; buttonBusy(btn, true, 'Submitting…'); alertBox.innerHTML = '';
     try {
       const res = await Api.call('submitProspect', {
-        submissionKey: this.draft.submissionKey, fields: vals, hp: $('[name=hp]', root).value,
+        submissionKey: this.draft.submissionKey, fields: vals, hp: $('[name=hp]', root).value, inviteToken: INVITE ? INVITE.token : '',
         elapsedMs: Date.now() - (this.draft.startedAt || Date.now()), clientVersion: CLIENT_VERSION
       });
       store.del(this.key);
       root.hidden = true;
       const done = $('#p-done'); done.hidden = false;
       done.innerHTML = doneHtml('Submission received', res.referenceId,
-        `<div class="alert ok">Invited to onboard already? <a href="#onboarding">Continue to Build Partner Onboarding</a>.</div>`);
+        INVITE ? '' : `<div class="alert ok">Invited to onboard already? <a href="#onboarding">Continue to Build Partner Onboarding</a>.</div>`);
+      if (INVITE) store.del('gp_invite_token');
       $('.done', done).focus();
       window.scrollTo({ top: 0, behavior: 'smooth' });
     } catch (err) {
@@ -899,6 +1080,7 @@ const Onb = {
 
   init() {
     this.defineSteps();
+    this.key = draftKey('gp_onboarding_draft');
     const root = $('#onboarding-form');
     $('#o-steps').innerHTML = this.steps.map((s, i) => `<div class="o-step" data-step="${i}" hidden>${s.intro ? this.introHtml() : ''}${renderSections(s.sections, 'o')}${s.review ? '<div id="o-review"></div>' : ''}</div>`).join('');
     // Move the review summary above the declaration section
@@ -912,6 +1094,7 @@ const Onb = {
     this.uploads = (draft.uploads || []).filter(u => u.status === 'ok');
     writeValues(root, this.allFields, draft.values);
     prefillFromUrl(root, { company: 'businessName', contact: 'primaryContact', name: 'primaryContact', email: 'primaryEmail', phone: 'primaryContactPhone' });
+    prefillFromInvite(root, { clientName: 'primaryContact', company: 'businessName', clientEmail: 'primaryEmail' });
     const ref = new URLSearchParams(location.search).get('ref');
     this.linkedProspectId = ref && /^PBP-\d{4}-\d{5}$/i.test(ref) ? ref.toUpperCase() : (draft.linkedProspectId || '');
     this.draft.linkedProspectId = this.linkedProspectId;
@@ -1100,7 +1283,7 @@ const Onb = {
         if (file.size > CFG.uploads.maxFileMb * 1048576) throw { message: `Still larger than ${CFG.uploads.maxFileMb} MB after resizing. Please use a smaller file.` };
         item.stage = 'Uploading…'; this.paintUploads();
         const b64 = await toBase64(file);
-        const res = await Api.call('uploadFile', { sessionId: this.draft.sessionId, category: item.category, fileName: file.name, mimeType: file.type, size: file.size, dataBase64: b64 }, { timeoutMs: 180000 });
+        const res = await Api.call('uploadFile', { sessionId: this.draft.sessionId, inviteToken: INVITE ? INVITE.token : '', category: item.category, fileName: file.name, mimeType: file.type, size: file.size, dataBase64: b64 }, { timeoutMs: 180000 });
         item.status = 'ok'; item.token = res.uploadToken; item.name = res.fileName; item.size = res.size; item.file = null;
       } catch (err) {
         item.status = 'bad'; item.error = (err && err.message) || 'Upload failed.';
@@ -1287,9 +1470,10 @@ const Onb = {
         uploads: this.uploads.filter(u => u.status === 'ok').map(u => ({ token: u.token, category: u.category })),
         signaturePng: this.sig.method === 'drawn' ? this.sig.dataUrl : '',
         typedSignature: this.sig.method === 'typed' ? $('#o-typedSignature').value.trim() : '',
-        hp: $('[name=hp]', root).value, elapsedMs: Date.now() - (this.draft.startedAt || Date.now()), clientVersion: CLIENT_VERSION
+        hp: $('[name=hp]', root).value, inviteToken: INVITE ? INVITE.token : '', elapsedMs: Date.now() - (this.draft.startedAt || Date.now()), clientVersion: CLIENT_VERSION
       }, { timeoutMs: 120000 });
       store.del(this.key);
+      if (INVITE) store.del('gp_invite_token');
       // Clear sensitive inputs from the page immediately.
       $$('input[type=password], [name=achAccountName], [name=bankName], [name=bankAddress]', root).forEach(i => { i.value = ''; });
       root.hidden = true; $('#o-progress').hidden = true;
@@ -1305,9 +1489,9 @@ const Onb = {
         if (firstStep !== this.step) this.go(firstStep);
         if (err.fields.docs_general) { const g = $('#o-docs-general'); if (g) { g.hidden = false; g.textContent = err.fields.docs_general; } }
         setTimeout(() => showErrors($(`.o-step[data-step="${firstStep}"]`), 'o', err.fields, $('#o-alert')), 60);
-      } else if (err && err.code === 'ALREADY_SUBMITTED') {
-        store.del(this.key);
-        alertBox.innerHTML = '<div class="alert warn">This application was already submitted. <a href="#onboarding" onclick="location.reload()">Start a new one</a>.</div>';
+      } else if (err && (err.code === 'ALREADY_SUBMITTED' || /^INVITE_/.test(err.code || ''))) {
+        if (err.code === 'ALREADY_SUBMITTED') store.del(this.key);
+        alertBox.innerHTML = `<div class="alert warn">${esc(err.message)}</div>`;
       } else {
         alertBox.innerHTML = serverErrorBox(err);
         alertBox.scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -1349,9 +1533,11 @@ async function shrinkImage(file) {
 const Router = {
   ready: { prospect: false, onboarding: false },
   show() {
-    const route = (location.hash || '').replace(/^#\/?/, '').split('?')[0];
-    const view = route === 'prospect' || route === 'onboarding' ? route : 'home';
-    ['home', 'prospect', 'onboarding'].forEach(v => { $('#view-' + v).hidden = v !== view; });
+    let route = (location.hash || '').replace(/^#\/?/, '').split('?')[0];
+    if (INVITE) route = INVITE.formType;               // invited clients only ever see their form
+    const locked = !INVITE && CFG.requireInvite && !isPreview();
+    const view = locked ? 'locked' : (route === 'prospect' || route === 'onboarding' ? route : 'home');
+    ['home', 'prospect', 'onboarding', 'locked'].forEach(v => { $('#view-' + v).hidden = v !== view; });
     $$('.top nav a').forEach(a => { if (a.dataset.route === view) a.setAttribute('aria-current', 'page'); else a.removeAttribute('aria-current'); });
     if (view === 'prospect' && !this.ready.prospect) { Prospect.init(); this.ready.prospect = true; }
     if (view === 'onboarding' && !this.ready.onboarding) { Onb.init(); this.ready.onboarding = true; }
@@ -1362,6 +1548,13 @@ const Router = {
   }
 };
 
+function showLocked(title, msg) {
+  ['home', 'prospect', 'onboarding'].forEach(v => { $('#view-' + v).hidden = true; });
+  $('#view-locked').hidden = false;
+  if (title) $('#lock-title').textContent = title;
+  if (msg) $('#lock-msg').textContent = msg;
+}
+
 document.addEventListener('click', async e => {
   const c = e.target.closest('[data-copy]');
   if (c) { const ok = await copyText(formLink(c.dataset.copy)); toast(ok ? 'Link copied — paste it into an email or text to your client.' : 'Copy failed — use the address bar.'); }
@@ -1369,8 +1562,25 @@ document.addEventListener('click', async e => {
   if (r) { const ok = await copyText(r.dataset.copyref); toast(ok ? 'Reference ID copied' : 'Copy failed'); }
 });
 
+/* Reads ?invite=… once, keeps it for this tab, and removes it from the address bar. */
+function readInviteToken() {
+  let t = '';
+  try {
+    const q = new URLSearchParams(location.search);
+    t = (q.get('invite') || '').toLowerCase();
+    if (t) {
+      store.set('gp_invite_token', t);
+      q.delete('invite');
+      const rest = q.toString();
+      history.replaceState(null, '', location.pathname + (rest ? '?' + rest : '') + location.hash);
+    } else { t = store.get('gp_invite_token') || ''; }
+  } catch (e) { /* ignore */ }
+  return /^[a-f0-9]{48}$/.test(t) ? t : '';
+}
+
 async function boot() {
   $('#yr').textContent = new Date().getFullYear();
+  if (IS_STAFF) { Staff.init(); return; }
   $('#view-loading').hidden = false;
   try {
     CFG = await Api.getConfig();
@@ -1380,12 +1590,281 @@ async function boot() {
     box.innerHTML = `<div class="form-wrap"><div class="alert err"><b>We couldn’t load the portal.</b> ${esc(err.message || 'Please check your connection.')}<p style="margin:10px 0 0"><button class="btn btn-dark" type="button" onclick="location.reload()">Try again</button></p></div></div>`;
     return;
   }
-  $('#view-loading').hidden = true;
-  if (isPreview()) $('#banner').innerHTML = '<div class="banner warn"><b>Preview mode — portal not connected.</b> Set <code>API_URL</code> in index.html to your Apps Script Web App URL. Submissions and uploads are disabled until then.</div>';
   const sl = $('#support-link'); sl.href = 'mailto:' + CFG.supportEmail; sl.textContent = CFG.supportEmail;
+  const ls = $('#lock-support'); ls.href = 'mailto:' + CFG.supportEmail; ls.textContent = CFG.supportEmail;
+  if (CFG.dashboardUrl) { $('#lock-staff').hidden = false; $('#lock-staff-a').href = CFG.dashboardUrl; }
+  if (isPreview()) $('#banner').innerHTML = '<div class="banner warn"><b>Preview mode — portal not connected.</b> Set <code>API_URL</code> in index.html to your Apps Script Web App URL. Submissions and uploads are disabled until then.</div>';
+
+  const token = isPreview() ? '' : readInviteToken();
+  if (token) {
+    try {
+      const inv = await Api.call('getInvite', { token }, { timeoutMs: 30000 });
+      INVITE = Object.assign({ token }, inv);
+      document.body.classList.add('invite-mode');
+      try { history.replaceState(null, '', location.pathname + location.search + '#' + inv.formType); } catch (e) {}
+      $('#view-loading').hidden = true;
+      if (inv.completed) {
+        store.del('gp_invite_token');
+        showLocked('Already submitted', 'This form was already submitted' + (inv.referenceId ? ' (reference ' + inv.referenceId + ')' : '') + '. Thank you! If something needs to change, please contact GoodPWR.');
+        return;
+      }
+    } catch (err) {
+      store.del('gp_invite_token');
+      $('#view-loading').hidden = true;
+      if (err && /^INVITE_/.test(err.code || '')) { showLocked(err.code === 'INVITE_EXPIRED' ? 'Link expired' : 'Link not valid', err.message); return; }
+      const box = $('#view-error'); box.hidden = false;
+      box.innerHTML = `<div class="form-wrap"><div class="alert err"><b>We couldn’t open your invitation.</b> ${esc((err && err.message) || 'Please check your connection.')}<p style="margin:10px 0 0"><button class="btn btn-dark" type="button" onclick="location.reload()">Try again</button></p></div></div>`;
+      return;
+    }
+  }
+  $('#view-loading').hidden = true;
+  if (CFG.requireInvite && !INVITE && !isPreview()) document.body.classList.add('invite-mode');
   window.addEventListener('hashchange', () => Router.show());
   Router.show();
 }
+
+/* =========================================================================
+   STAFF DASHBOARD (runs only inside Apps Script for signed-in GoodPWR staff;
+   every call is re-authorized on the server)
+   ========================================================================= */
+const Staff = {
+  tab: 'invites', page: 1, q: '', status: '', meta: null, current: null,
+
+  run(action, payload) {
+    return new Promise((resolve, reject) => {
+      google.script.run
+        .withSuccessHandler(r => (r && r.ok) ? resolve(r.data) : reject((r && r.error) || { message: 'Something went wrong.' }))
+        .withFailureHandler(e => reject({ code: 'NETWORK', message: (e && e.message) || 'Could not reach the server. Please try again.' }))
+        .staffApi(action, payload || {});
+    });
+  },
+
+  fmt(iso, withTime) {
+    if (!iso) return '';
+    const d = new Date(iso); if (isNaN(d)) return esc(iso);
+    return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }) + (withTime ? ' · ' + d.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' }) : '');
+  },
+  chip(st) { return `<span class="chip ${esc(String(st || '').replace(/[^A-Za-z]+/g, '-'))}">${esc(st || '—')}</span>`; },
+
+  async init() {
+    document.body.classList.add('staff-mode');
+    $('.top nav').innerHTML = '';
+    $('.top-in').insertAdjacentHTML('beforeend', '<div class="who">Signed in as <b id="s-me">…</b></div>');
+    $('.brand small').textContent = 'Partner Portal · Staff';
+    $('footer').innerHTML = '<span>GoodPWR internal · visible to @getgoodpwr.com accounts only</span>';
+    $('#view-staff').hidden = false;
+    $('#s-send').addEventListener('submit', e => { e.preventDefault(); this.send(false); });
+    $('#s-refresh').addEventListener('click', () => { this.loadOverview(); this.loadList(); });
+    $$('.tabs [data-tab]').forEach(b => b.addEventListener('click', () => this.switchTab(b.dataset.tab)));
+    let qt; $('#s-q').addEventListener('input', e => { clearTimeout(qt); qt = setTimeout(() => { this.q = e.target.value; this.page = 1; this.loadList(); }, 300); });
+    $('#s-status').addEventListener('change', e => { this.status = e.target.value; this.page = 1; this.loadList(); });
+    $('#s-pager').addEventListener('click', e => { const b = e.target.closest('[data-page]'); if (b) { this.page = Number(b.dataset.page); this.loadList(); } });
+    $('#s-list').addEventListener('click', e => this.onListClick(e));
+    $('#d-close').addEventListener('click', () => $('#s-drawer').close());
+    $('#s-drawer').addEventListener('click', e => { if (e.target.id === 's-drawer') $('#s-drawer').close(); });
+    $('#d-body').addEventListener('click', e => this.onDrawerClick(e));
+    $('#s-send').addEventListener('input', e => { const w = e.target.closest('.field.has-err'); if (w) w.classList.remove('has-err'); });
+    await this.loadOverview();
+    this.fillStatusFilter();
+    this.loadList();
+  },
+
+  async loadOverview() {
+    try {
+      const o = await this.run('overview');
+      this.meta = o;
+      $('#s-me').textContent = o.me;
+      $('#s-sheet').href = o.sheetUrl;
+      $('#s-setup').innerHTML = o.portalUrlSet ? '' : '<div class="alert warn"><b>One setup step left:</b> add your GitHub Pages link to <b>PORTAL_URL</b> in the Configuration sheet so invitation emails have a working link.</div>';
+      const k = o.kpis;
+      const card = (n, label, tab, status, hot) => `<button type="button" class="kpi${hot && n ? ' hot' : ''}" data-kpi-tab="${tab}" data-kpi-status="${esc(status)}"><b>${n}</b><span>${esc(label)}</span></button>`;
+      $('#s-kpis').innerHTML =
+        card(k.invitesAwaiting, 'Waiting on clients', 'invites', '', true) +
+        card(k.completed30, 'Forms completed (30 days)', 'invites', 'Completed') +
+        card(k.onboardingToReview, 'Onboarding to review', 'onboarding', 'New', true) +
+        card(k.onboardingMoreInfo, 'Waiting for more info', 'onboarding', 'More Information Required') +
+        card(k.prospectsNew, 'New prospects', 'prospect', 'New', true) +
+        card(k.siteCaptureOpen, 'Open Site Capture requests', 'onboarding', '');
+      $$('#s-kpis [data-kpi-tab]').forEach(b => b.addEventListener('click', () => { this.switchTab(b.dataset.kpiTab, b.dataset.kpiStatus); }));
+    } catch (err) {
+      $('#s-setup').innerHTML = `<div class="alert err">${esc(err.message)}</div>`;
+    }
+  },
+
+  fillStatusFilter() {
+    const list = this.tab === 'invites' ? ((this.meta && this.meta.statuses.invite) || []) : ((this.meta && this.meta.statuses.app) || []);
+    $('#s-status').innerHTML = '<option value="">All statuses</option>' + list.map(s => `<option${s === this.status ? ' selected' : ''}>${esc(s)}</option>`).join('');
+  },
+
+  switchTab(tab, status) {
+    this.tab = tab; this.page = 1; this.status = status || ''; this.q = ''; $('#s-q').value = '';
+    $$('.tabs [data-tab]').forEach(b => b.setAttribute('aria-selected', b.dataset.tab === tab ? 'true' : 'false'));
+    this.fillStatusFilter();
+    this.loadList();
+  },
+
+  async loadList() {
+    const box = $('#s-list');
+    box.innerHTML = '<div class="loading" style="padding:30px 0"><span class="spin"></span><span>Loading…</span></div>';
+    const req = ++this._req;
+    try {
+      const data = this.tab === 'invites'
+        ? await this.run('listInvites', { page: this.page, q: this.q, status: this.status })
+        : await this.run('listRecords', { kind: this.tab, page: this.page, q: this.q, status: this.status });
+      if (req !== this._req) return;
+      this.page = data.page;
+      box.innerHTML = data.rows.length ? this.renderTable(data.rows) : `<div class="empty">${this.q || this.status ? 'Nothing matches these filters.' : this.tab === 'invites' ? 'No invitations yet. Send your first form on the left.' : 'No submissions yet.'}</div>`;
+      $('#s-pager').innerHTML = data.total ? `<span>${data.total} total · page ${data.page} of ${data.pages}</span><span><button class="btn btn-ghost" type="button" data-page="${data.page - 1}" ${data.page <= 1 ? 'disabled' : ''}>Previous</button> <button class="btn btn-ghost" type="button" data-page="${data.page + 1}" ${data.page >= data.pages ? 'disabled' : ''}>Next</button></span>` : '';
+    } catch (err) {
+      if (req !== this._req) return;
+      box.innerHTML = `<div class="alert err">${esc(err.message)}</div>`; $('#s-pager').innerHTML = '';
+    }
+  },
+  _req: 0,
+
+  renderTable(rows) {
+    if (this.tab === 'invites') {
+      return `<table class="tbl"><thead><tr><th>Client</th><th>Form</th><th>Status</th><th>Sent</th><th>Activity</th><th></th></tr></thead><tbody>` + rows.map(r => {
+        const open = ['Sent', 'Opened', 'In Progress', 'Expired'].indexOf(r['Status']) !== -1;
+        const activity = r['Completed At'] ? 'Completed ' + this.fmt(r['Completed At']) : r['Opened At'] ? 'Opened ' + this.fmt(r['Opened At']) : 'Not opened yet';
+        const kind = r['Form Type'] === 'Onboarding' ? 'onboarding' : 'prospect';
+        return `<tr><td data-l="Client"><div><b>${esc(r['Client Name'])}</b><small>${esc(r['Client Email'])}${r['Company'] ? ' · ' + esc(r['Company']) : ''}</small></div></td>
+          <td data-l="Form"><div>${esc(r['Form Type'])}</div></td>
+          <td data-l="Status"><div>${this.chip(r['Status'])}${r['Notification Status'] === 'Failed' || r['Notification Status'] === 'Gave Up' ? '<small style="color:var(--err)">Email failed</small>' : ''}</div></td>
+          <td data-l="Sent"><div>${this.fmt(r['Created At'])}<small>${esc(String(r['Sent By'] || '').split('@')[0])}${Number(r['Send Count']) > 1 ? ' · sent ' + r['Send Count'] + '×' : ''}</small></div></td>
+          <td data-l="Activity"><div>${esc(activity)}${!r['Completed At'] && r['Expires At'] ? '<small>Link valid until ' + this.fmt(r['Expires At']) + '</small>' : ''}</div></td>
+          <td class="acts">${r['Record ID'] ? `<button type="button" class="btn-link" data-open="${esc(kind)}|${esc(r['Record ID'])}">View ${esc(r['Record ID'])}</button>` : ''}
+            ${open ? `<button type="button" class="btn-link" data-resend="${esc(r['Invite ID'])}">Resend</button><button type="button" class="btn-link" data-revoke="${esc(r['Invite ID'])}">Cancel</button>` : ''}</td></tr>`;
+      }).join('') + '</tbody></table>';
+    }
+    if (this.tab === 'prospect') {
+      return `<table class="tbl"><thead><tr><th>Reference</th><th>Company</th><th>States</th><th>Status</th><th>Submitted</th></tr></thead><tbody>` + rows.map(r =>
+        `<tr class="click" tabindex="0" data-open="prospect|${esc(r['Record ID'])}"><td data-l="Reference" class="mono"><div>${esc(r['Record ID'])}</div></td>
+          <td data-l="Company"><div><b>${esc(r['Company'])}</b><small>${esc(r['Contact'])} · ${esc(r['Email'])}</small></div></td>
+          <td data-l="States"><div>${esc(r['States Served'])}</div></td>
+          <td data-l="Status"><div>${this.chip(r['Status'])}${r['Possible Duplicate Of'] ? '<small>Possible duplicate</small>' : ''}</div></td>
+          <td data-l="Submitted"><div>${this.fmt(r['Created At'])}</div></td></tr>`).join('') + '</tbody></table>';
+    }
+    return `<table class="tbl"><thead><tr><th>Reference</th><th>Business</th><th>Site Capture</th><th>Docs</th><th>Status</th><th>Submitted</th></tr></thead><tbody>` + rows.map(r =>
+      `<tr class="click" tabindex="0" data-open="onboarding|${esc(r['Record ID'])}"><td data-l="Reference" class="mono"><div>${esc(r['Record ID'])}</div></td>
+        <td data-l="Business"><div><b>${esc(r['Business Name'])}</b><small>${esc(r['Primary Contact'])} · ${esc(r['Primary Email'])}</small></div></td>
+        <td data-l="Site Capture"><div>${esc(String(r['Site Capture Status'] || '').replace(' — please contact me', ''))}</div></td>
+        <td data-l="Docs"><div>${esc(r['Document Count'])}${r['Last Error Code'] ? '<small style="color:var(--err)">' + esc(r['Last Error Code']) + '</small>' : ''}</div></td>
+        <td data-l="Status"><div>${this.chip(r['Status'])}</div></td>
+        <td data-l="Submitted"><div>${this.fmt(r['Created At'])}</div></td></tr>`).join('') + '</tbody></table>';
+  },
+
+  async onListClick(e) {
+    const o = e.target.closest('[data-open]');
+    const rs = e.target.closest('[data-resend]');
+    const rv = e.target.closest('[data-revoke]');
+    if (rs) {
+      e.stopPropagation();
+      if (!confirm('Send a fresh link to this client? The previous link will stop working.')) return;
+      try { const r = await this.run('resendInvite', { inviteId: rs.dataset.resend }); toast('New link sent (' + r.emailStatus + ')'); this.loadList(); }
+      catch (err) { toast(err.message); }
+      return;
+    }
+    if (rv) {
+      e.stopPropagation();
+      if (!confirm('Cancel this invitation? The client’s link will stop working.')) return;
+      try { await this.run('revokeInvite', { inviteId: rv.dataset.revoke }); toast('Invitation cancelled'); this.loadList(); this.loadOverview(); }
+      catch (err) { toast(err.message); }
+      return;
+    }
+    if (o) { const [kind, id] = o.dataset.open.split('|'); this.openRecord(kind, id); }
+  },
+
+  async send(force) {
+    const form = $('#s-send'), btn = $('#s-send-btn');
+    const vals = { formType: ($('input[name=formType]:checked', form) || {}).value || '', email: $('#s-email').value.trim(), name: $('#s-name').value.trim(), company: $('#s-company').value.trim(), message: $('#s-message').value.trim(), force: !!force };
+    const errs = {};
+    if (!vals.formType) errs.formType = 'Choose a form.';
+    if (!V.email(vals.email)) errs.email = 'Enter a valid email address.';
+    if (!vals.name) errs.name = 'Enter the client’s name.';
+    $('#s-sent').innerHTML = ''; $('#s-send-alert').innerHTML = '';
+    if (showErrors(form, 's', errs, null)) return;
+    buttonBusy(btn, true, 'Sending…');
+    try {
+      const r = await this.run('createInvite', vals);
+      const emailOk = r.emailStatus === 'Sent';
+      $('#s-sent').innerHTML = `<div class="alert ${emailOk ? 'ok' : 'warn'}"><b>${emailOk ? 'Invitation sent' : 'Invitation created'}</b> to ${esc(vals.email)} (${esc(r.inviteId)}).${emailOk ? '' : ' The email is queued and will retry automatically — you can also copy the link below.'}
+        <div class="linkrow"><input class="input" readonly value="${esc(r.link)}" aria-label="Invitation link"><button class="btn btn-ghost" type="button" data-copy-link="${esc(r.link)}">Copy</button></div>
+        <small style="display:block;margin-top:6px">This link is shown once. Use Resend later to send a fresh one.</small></div>`;
+      $('[data-copy-link]', $('#s-sent')).addEventListener('click', async ev => { const ok = await copyText(ev.target.dataset.copyLink); toast(ok ? 'Link copied' : 'Select the link and copy it'); });
+      ['#s-email', '#s-name', '#s-company', '#s-message'].forEach(s => { $(s).value = ''; });
+      this.loadOverview(); if (this.tab === 'invites') { this.page = 1; this.loadList(); }
+    } catch (err) {
+      if (err.code === 'VALIDATION' && err.fields) showErrors(form, 's', err.fields, null);
+      else if (err.code === 'ACTIVE_INVITE_EXISTS') {
+        $('#s-send-alert').innerHTML = `<div class="alert warn">${esc(err.message)}<p style="margin:8px 0 0"><button type="button" class="btn btn-ghost" id="s-force">Send another anyway</button></p></div>`;
+        $('#s-force').addEventListener('click', () => this.send(true));
+      } else $('#s-send-alert').innerHTML = `<div class="alert err">${esc(err.message)}</div>`;
+    } finally { buttonBusy(btn, false); }
+  },
+
+  async openRecord(kind, id) {
+    const dlg = $('#s-drawer');
+    $('#d-title').textContent = id; $('#d-sub').textContent = 'Loading…'; $('#d-body').innerHTML = '<div class="loading"><span class="spin"></span></div>';
+    if (!dlg.open) dlg.showModal();
+    try {
+      const r = await this.run('getRecord', { kind, id });
+      this.current = r;
+      this.renderRecord(r);
+    } catch (err) { $('#d-sub').textContent = ''; $('#d-body').innerHTML = `<div class="alert err">${esc(err.message)}</div>`; }
+  },
+
+  renderRecord(r) {
+    $('#d-title').textContent = r.title || r.id;
+    $('#d-sub').innerHTML = `${esc(r.id)} · ${esc(r.kind === 'onboarding' ? 'Onboarding' : 'Prospect')} · ${this.chip(r.status)}`;
+    const opts = [r.status].concat(r.allowed.filter(s => s !== r.status)).map(s => `<option value="${esc(s)}"${s === r.status ? ' selected' : ''}>${esc(s === r.status ? s + ' (current)' : s)}</option>`).join('');
+    const sc = r.siteCapture ? `<div class="panel"><h3>Site Capture request · ${esc(r.siteCapture.id)}</h3>
+      <dl class="kv"><dt>Answer</dt><dd>${esc(r.siteCapture.answer)}</dd>${r.siteCapture.user ? `<dt>Profile for</dt><dd>${esc(r.siteCapture.user)} · ${esc(r.siteCapture.userEmail)}</dd>` : ''}${r.siteCapture.vendorId ? `<dt>Vendor ID</dt><dd>${esc(r.siteCapture.vendorId)}</dd>` : ''}</dl>
+      <div class="row" style="margin-top:10px"><select class="select" id="d-sc-status">${[r.siteCapture.status].concat(r.siteCapture.allowed.filter(s => s !== r.siteCapture.status)).map(s => `<option value="${esc(s)}">${esc(s === r.siteCapture.status ? s + ' (current)' : s)}</option>`).join('')}</select><button type="button" class="btn btn-ghost" data-act="sc-save">Update request</button></div></div>` : '';
+    const docs = r.kind === 'onboarding' ? `<div class="panel"><h3>Documents (${r.documents.length})</h3>${r.documents.length ? '<ul class="docs">' + r.documents.map(d => `<li><span><b>${esc(d.category)}</b><small>${esc(d.name)}${d.size ? ' · ' + fmtBytes(d.size) : ''}</small></span>${d.restricted ? '<small>Finance only</small>' : d.url ? `<a href="${esc(d.url)}" target="_blank" rel="noopener">Open</a>` : ''}</li>`).join('') + '</ul>' : '<p class="sub">No documents.</p>'}${r.folderUrl ? `<p style="margin:10px 0 0"><a href="${esc(r.folderUrl)}" target="_blank" rel="noopener">Open documents folder in Drive →</a></p>` : ''}</div>` : '';
+    $('#d-body').innerHTML = `
+      <div class="panel"><h3>Review</h3>
+        <div class="row"><select class="select" id="d-status" aria-label="Status">${opts}</select><button type="button" class="btn btn-primary" data-act="save">Save status</button></div>
+        <label class="sr-only" for="d-msg">Message to applicant</label>
+        <textarea class="textarea" id="d-msg" placeholder="Message to applicant (e.g. what’s missing)">${esc(r.messageToApplicant)}</textarea>
+        <p class="sub" style="margin:6px 0 0;font-size:12.5px">${r.applicantEmailsOn ? 'The applicant is emailed this message when you choose More Information Required, Approved or Rejected.' : 'Applicant status emails are off (SEND_APPLICANT_STATUS_EMAILS). The message is saved for your team.'}</p>
+        <div id="d-save-msg"></div>
+      </div>
+      <div class="panel"><h3>Result</h3>
+        <div class="row"><button type="button" class="btn btn-dark" data-act="report">Generate PDF summary</button><a class="btn btn-ghost" href="${esc(r.sheetUrl)}" target="_blank" rel="noopener">Open in database</a></div>
+        <div id="d-report"></div>
+      </div>
+      ${sc}${docs}
+      ${r.sections.map(s => `<div class="panel"><h3>${esc(s.title)}</h3><dl class="kv">${s.rows.map(x => `<dt>${esc(x[0])}</dt><dd>${esc(x[1])}</dd>`).join('')}</dl></div>`).join('')}`;
+  },
+
+  async onDrawerClick(e) {
+    const b = e.target.closest('[data-act]'); if (!b || !this.current) return;
+    const r = this.current;
+    if (b.dataset.act === 'save') {
+      buttonBusy(b, true, 'Saving…');
+      try {
+        const res = await this.run('updateStatus', { kind: r.kind, id: r.id, status: $('#d-status').value, message: $('#d-msg').value });
+        toast('Status saved' + (res.emailed ? ' · applicant emailed' : ''));
+        this.openRecord(r.kind, r.id); this.loadList(); this.loadOverview();
+      } catch (err) { $('#d-save-msg').innerHTML = `<div class="alert err">${esc(err.message)}</div>`; buttonBusy(b, false); }
+    }
+    if (b.dataset.act === 'sc-save') {
+      buttonBusy(b, true, 'Saving…');
+      try { await this.run('updateStatus', { kind: 'sitecapture', id: r.siteCapture.id, status: $('#d-sc-status').value }); toast('Site Capture request updated'); this.openRecord(r.kind, r.id); this.loadOverview(); }
+      catch (err) { toast(err.message); buttonBusy(b, false); }
+    }
+    if (b.dataset.act === 'report') {
+      buttonBusy(b, true, 'Generating…');
+      try {
+        const res = await this.run('generateReport', { kind: r.kind, id: r.id });
+        $('#d-report').innerHTML = `<div class="alert ok">Saved to Drive: <a href="${esc(res.url)}" target="_blank" rel="noopener">${esc(res.name)}</a></div>`;
+      } catch (err) { $('#d-report').innerHTML = `<div class="alert err">${esc(err.message)}</div>`; }
+      finally { buttonBusy(b, false); }
+    }
+  }
+};
+
 boot();
 </script>
 </body>
