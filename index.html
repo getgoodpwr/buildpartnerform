@@ -174,7 +174,7 @@ main{max-width:1080px;margin:0 auto;padding:24px 16px 64px}
 @media (max-width:480px){.nav-row{flex-wrap:wrap}.nav-row .right{width:100%}.nav-row .right .btn{flex:1}}
 
 .alert{border-radius:var(--radius-sm);padding:12px 14px;margin:14px 0;font-size:14.5px;border:1px solid}
-.alert.err{background:var(--err-soft);border-color:#f3c3be;color:#7a1a14}
+div.alert.err{display:block;background:var(--err-soft);border-color:#f3c3be;color:#7a1a14}
 .alert.ok{background:var(--ok-soft);border-color:#bfe0cb;color:#1d5234}
 .alert.info{background:var(--info-soft);border-color:#d2dfeb;color:#26415c}
 .alert.warn{background:var(--gold-soft);border-color:#ecd29a;color:#5b3d07}
@@ -258,7 +258,7 @@ main{max-width:1080px;margin:0 auto;padding:24px 16px 64px}
 .hp{position:absolute;left:-10000px;width:1px;height:1px;overflow:hidden}
 footer{max-width:1080px;margin:0 auto;padding:0 16px 32px;color:var(--faint);font-size:13px;display:flex;gap:12px;flex-wrap:wrap;justify-content:space-between}
 [hidden]{display:none!important}
-body.invite-mode .top nav, body.invite-mode .share, body.invite-mode [data-copy], body.invite-mode .back-portal{display:none!important}
+body.staff-route .top nav, body.invite-mode .top nav, body.invite-mode .share, body.invite-mode [data-copy], body.invite-mode .back-portal{display:none!important}
 .invite-strip{display:flex;gap:10px;align-items:center;background:var(--gold-soft);border:1px solid #ecd29a;color:#5b3d07;border-radius:8px;padding:10px 12px;font-size:14px;margin:14px 0 0}
 
 /* Locked (no invitation) */
@@ -267,6 +267,15 @@ body.invite-mode .top nav, body.invite-mode .share, body.invite-mode [data-copy]
 .lock h1{font-family:var(--head);text-transform:uppercase;font-size:34px;margin:0 0 8px}
 .lock p{color:var(--ink-2);margin:0 auto 10px;max-width:460px}
 .lock .staff-link{margin-top:22px;font-size:14px;color:var(--muted)}
+
+/* ===== Staff sign-in (GitHub-hosted dashboard) ===== */
+.signin{max-width:440px;margin:7vh auto 0;background:var(--card);border:1px solid var(--line);border-top:5px solid var(--gold);border-radius:var(--radius);box-shadow:var(--shadow);padding:28px;text-align:center}
+.signin img{width:110px;margin:0 auto 10px}
+.signin h1{font-family:var(--head);text-transform:uppercase;font-size:30px;margin:0 0 6px}
+.signin p{color:var(--ink-2);margin:0 0 16px}
+.signin .gbtn{display:flex;justify-content:center;min-height:44px;margin:8px 0}
+.signin small{display:block;color:var(--muted);margin-top:14px}
+.who .btn-link{color:var(--gold-2)}
 
 /* ===== Staff dashboard ===== */
 body.staff-mode main{max-width:1240px}
@@ -490,11 +499,23 @@ dialog.drawer::backdrop{background:rgba(34,32,29,.45)}
       <h1 id="lock-title">By invitation only</h1>
       <p id="lock-msg">This GoodPWR portal is opened from a personal invitation link. Please use the link in the email GoodPWR sent you.</p>
       <p>Need a new link? Email <a id="lock-support" href="mailto:Operations@getgoodpwr.com">Operations@getgoodpwr.com</a>.</p>
-      <p class="staff-link" id="lock-staff" hidden>GoodPWR staff? <a id="lock-staff-a" href="#">Open the dashboard</a> (sign in with your @getgoodpwr.com account).</p>
+      <p class="staff-link" id="lock-staff">GoodPWR staff? <a id="lock-staff-a" href="#staff">Sign in to the dashboard</a>.</p>
     </div>
   </section>
 
-  <!-- ===================== STAFF DASHBOARD (only inside Apps Script) ===================== -->
+  <!-- ===================== STAFF SIGN-IN (GitHub-hosted dashboard) ===================== -->
+  <section id="view-staff-login" hidden>
+    <div class="signin">
+      <img data-logo alt="GoodPWR logo">
+      <h1>Staff sign-in</h1>
+      <p>The Partner Portal dashboard is for GoodPWR staff. Sign in with your <b>@getgoodpwr.com</b> Google account.</p>
+      <div class="gbtn" id="g-btn"></div>
+      <div id="g-msg" role="alert"></div>
+      <small>Clients: please use the invitation link from your email.</small>
+    </div>
+  </section>
+
+  <!-- ===================== STAFF DASHBOARD ===================== -->
   <section id="view-staff" hidden>
     <div class="dash-head">
       <div><h1>Partner Portal Dashboard</h1><p>Send forms to clients, track who still needs to complete them, and review submissions.</p></div>
@@ -1535,6 +1556,17 @@ const Router = {
   show() {
     let route = (location.hash || '').replace(/^#\/?/, '').split('?')[0];
     if (INVITE) route = INVITE.formType;               // invited clients only ever see their form
+    if (route === 'staff') {                           // GitHub-hosted dashboard (Google sign-in)
+      ['home', 'prospect', 'onboarding', 'locked'].forEach(v => { $('#view-' + v).hidden = true; });
+      document.body.classList.remove('invite-mode');
+      document.body.classList.add('staff-route');
+      document.title = 'Dashboard · GoodPWR Partner Portal';
+      StaffAuth.start();
+      return;
+    }
+    $('#view-staff-login').hidden = true; $('#view-staff').hidden = true;
+    document.body.classList.remove('staff-route');
+    if (CFG.requireInvite && !INVITE && !isPreview()) document.body.classList.add('invite-mode');
     const locked = !INVITE && CFG.requireInvite && !isPreview();
     const view = locked ? 'locked' : (route === 'prospect' || route === 'onboarding' ? route : 'home');
     ['home', 'prospect', 'onboarding', 'locked'].forEach(v => { $('#view-' + v).hidden = v !== view; });
@@ -1592,10 +1624,10 @@ async function boot() {
   }
   const sl = $('#support-link'); sl.href = 'mailto:' + CFG.supportEmail; sl.textContent = CFG.supportEmail;
   const ls = $('#lock-support'); ls.href = 'mailto:' + CFG.supportEmail; ls.textContent = CFG.supportEmail;
-  if (CFG.dashboardUrl) { $('#lock-staff').hidden = false; $('#lock-staff-a').href = CFG.dashboardUrl; }
   if (isPreview()) $('#banner').innerHTML = '<div class="banner warn"><b>Preview mode — portal not connected.</b> Set <code>API_URL</code> in index.html to your Apps Script Web App URL. Submissions and uploads are disabled until then.</div>';
 
-  const token = isPreview() ? '' : readInviteToken();
+  const onStaffRoute = /^#\/?staff/.test(location.hash || '');
+  const token = isPreview() || onStaffRoute ? '' : readInviteToken();
   if (token) {
     try {
       const inv = await Api.call('getInvite', { token }, { timeoutMs: 30000 });
@@ -1618,7 +1650,6 @@ async function boot() {
     }
   }
   $('#view-loading').hidden = true;
-  if (CFG.requireInvite && !INVITE && !isPreview()) document.body.classList.add('invite-mode');
   window.addEventListener('hashchange', () => Router.show());
   Router.show();
 }
@@ -1627,10 +1658,75 @@ async function boot() {
    STAFF DASHBOARD (runs only inside Apps Script for signed-in GoodPWR staff;
    every call is re-authorized on the server)
    ========================================================================= */
+const StaffAuth = {
+  _token: '', _exp: 0, _gisLoading: null,
+  token() { return this._token; },
+  decode(t) { try { return JSON.parse(atob(t.split('.')[1].replace(/-/g, '+').replace(/_/g, '/'))); } catch (e) { return {}; } },
+  restore() {
+    const saved = store.get('gp_staff_idt');
+    if (saved && saved.t && saved.exp - 60000 > Date.now()) { this._token = saved.t; this._exp = saved.exp; return true; }
+    return false;
+  },
+  loadGis() {
+    if (window.google && google.accounts && google.accounts.id) return Promise.resolve();
+    if (this._gisLoading) return this._gisLoading;
+    this._gisLoading = new Promise((res, rej) => {
+      const sc = document.createElement('script');
+      sc.src = 'https://accounts.google.com/gsi/client'; sc.async = true; sc.defer = true;
+      sc.onload = () => res(); sc.onerror = () => rej(new Error('Could not load Google sign-in. Check your connection or ad blocker.'));
+      document.head.appendChild(sc);
+    });
+    return this._gisLoading;
+  },
+  async start() {
+    if (this._token && this._exp - 60000 > Date.now() || this.restore()) { Staff.init(); return; }
+    $('#view-staff').hidden = true;
+    $('#view-staff-login').hidden = false;
+    const msg = $('#g-msg');
+    if (!CFG.googleClientId) { msg.innerHTML = '<div class="alert warn" style="text-align:left"><b>Google sign-in isn’t set up yet.</b> Add <b>GOOGLE_CLIENT_ID</b> in the Configuration sheet (see setup Step 5b in Code.gs).</div>'; return; }
+    try {
+      await this.loadGis();
+      google.accounts.id.initialize({
+        client_id: CFG.googleClientId,
+        hd: 'getgoodpwr.com',                  // hint only — the server enforces the domain
+        auto_select: true,
+        callback: r => this.onCredential(r)
+      });
+      $('#g-btn').innerHTML = '';
+      google.accounts.id.renderButton($('#g-btn'), { theme: 'filled_black', size: 'large', text: 'signin_with', shape: 'pill', width: 280 });
+      google.accounts.id.prompt();
+    } catch (e) { msg.innerHTML = `<div class="alert err">${esc(e.message)}</div>`; }
+  },
+  onCredential(resp) {
+    const t = resp && resp.credential; if (!t) return;
+    const c = this.decode(t);
+    if (!/@getgoodpwr\.com$/i.test(c.email || '')) { $('#g-msg').innerHTML = '<div class="alert err">Please use your @getgoodpwr.com Google account.</div>'; return; }
+    this._token = t; this._exp = (Number(c.exp) || 0) * 1000;
+    store.set('gp_staff_idt', { t, exp: this._exp });
+    $('#g-msg').innerHTML = '';
+    Staff.init();
+  },
+  signOut(message) {
+    this._token = ''; this._exp = 0; store.del('gp_staff_idt');
+    try { google.accounts.id.disableAutoSelect(); } catch (e) {}
+    $('#view-staff').hidden = true;
+    const who = $('.who'); if (who) who.hidden = true;
+    this.start().then(() => { if (message) $('#g-msg').innerHTML = `<div class="alert info">${esc(message)}</div>`; });
+  }
+};
+
 const Staff = {
   tab: 'invites', page: 1, q: '', status: '', meta: null, current: null,
 
   run(action, payload) {
+    if (!IS_STAFF) {
+      // GitHub-hosted: every call carries the Google sign-in token; the server verifies it with Google.
+      return Api.call('staff', { idToken: StaffAuth.token(), action, data: payload || {} }, { timeoutMs: action === 'generateReport' ? 120000 : 60000 })
+        .catch(err => {
+          if (err && (err.code === 'NOT_AUTHENTICATED' || err.code === 'NOT_AUTHORIZED')) StaffAuth.signOut(err.message);
+          throw err;
+        });
+    }
     return new Promise((resolve, reject) => {
       google.script.run
         .withSuccessHandler(r => (r && r.ok) ? resolve(r.data) : reject((r && r.error) || { message: 'Something went wrong.' }))
@@ -1647,9 +1743,14 @@ const Staff = {
   chip(st) { return `<span class="chip ${esc(String(st || '').replace(/[^A-Za-z]+/g, '-'))}">${esc(st || '—')}</span>`; },
 
   async init() {
+    $('#view-staff-login').hidden = true;
+    $('#view-staff').hidden = false;
+    if (this.started) { const who = $('.who'); if (who) who.hidden = false; this.loadOverview(); this.loadList(); return; }
+    this.started = true;
     document.body.classList.add('staff-mode');
     $('.top nav').innerHTML = '';
-    $('.top-in').insertAdjacentHTML('beforeend', '<div class="who">Signed in as <b id="s-me">…</b></div>');
+    $('.top-in').insertAdjacentHTML('beforeend', '<div class="who">Signed in as <b id="s-me">…</b>' + (IS_STAFF ? '' : ' <button type="button" class="btn-link" id="s-signout">Sign out</button>') + '</div>');
+    if (!IS_STAFF) $('#s-signout').addEventListener('click', () => StaffAuth.signOut('You are signed out.'));
     $('.brand small').textContent = 'Partner Portal · Staff';
     $('footer').innerHTML = '<span>GoodPWR internal · visible to @getgoodpwr.com accounts only</span>';
     $('#view-staff').hidden = false;
