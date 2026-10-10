@@ -508,9 +508,19 @@ dialog.drawer::backdrop{background:rgba(34,32,29,.45)}
     <div class="signin">
       <img data-logo alt="GoodPWR logo">
       <h1>Staff sign-in</h1>
-      <p>The Partner Portal dashboard is for GoodPWR staff. Sign in with your <b>@getgoodpwr.com</b> Google account.</p>
-      <div class="gbtn" id="g-btn"></div>
-      <div id="g-msg" role="alert"></div>
+      <p id="g-intro">The Partner Portal dashboard is for GoodPWR staff. Enter your <b>@getgoodpwr.com</b> email and we’ll send you a sign-in code.</p>
+      <form id="g-email-form" novalidate style="text-align:left">
+        <div class="field" data-field="loginEmail"><label for="g-email">Work email</label>
+          <input class="input" id="g-email" type="email" inputmode="email" autocomplete="email" placeholder="you@getgoodpwr.com" maxlength="254"><div class="err" id="g-loginEmail-err"></div></div>
+        <button class="btn btn-dark" type="submit" id="g-send" style="width:100%">Email me a code</button>
+      </form>
+      <form id="g-code-form" novalidate hidden style="text-align:left">
+        <div class="field" data-field="loginCode"><label for="g-code">6-digit code</label>
+          <input class="input" id="g-code" type="text" inputmode="numeric" autocomplete="one-time-code" maxlength="6" placeholder="••••••" style="font-size:24px;letter-spacing:8px;text-align:center"><div class="err" id="g-loginCode-err"></div></div>
+        <button class="btn btn-primary" type="submit" id="g-verify" style="width:100%">Sign in</button>
+        <p style="margin:10px 0 0;text-align:center;font-size:14px"><button type="button" class="btn-link" id="g-back">Use a different email</button> · <button type="button" class="btn-link" id="g-resend">Send a new code</button></p>
+      </form>
+      <div id="g-msg" role="alert" style="margin-top:10px"></div>
       <small>Clients: please use the invitation link from your email.</small>
     </div>
   </section>
@@ -644,21 +654,27 @@ const V = {
 };
 
 /* ---------- API ---------- */
+/* Timeouts use Promise.race (no AbortSignal), so this works in every browser,
+   in-app preview and embedded viewer. */
+function fetchWithTimeout(url, opts, ms) {
+  let timer;
+  const timeout = new Promise((_, reject) => { timer = setTimeout(() => reject({ name: 'Timeout' }), ms); });
+  return Promise.race([fetch(url, opts), timeout]).finally(() => clearTimeout(timer));
+}
+
 const Api = {
   async call(action, payload, { timeoutMs = 60000 } = {}) {
     if (isPreview()) { await new Promise(r => setTimeout(r, 500)); throw { code: 'PREVIEW', message: 'Preview mode: this portal is not connected yet, so nothing was submitted. Set API_URL in index.html.' }; }
-    const ctrl = new AbortController();
-    const timer = setTimeout(() => ctrl.abort(), timeoutMs);
     let res;
     try {
-      res = await fetch(API_URL, {
-        method: 'POST', redirect: 'follow', signal: ctrl.signal,
+      res = await fetchWithTimeout(API_URL, {
+        method: 'POST', redirect: 'follow',
         headers: { 'Content-Type': 'text/plain;charset=utf-8' },   // simple request: no CORS preflight
         body: JSON.stringify({ action, apiVersion: API_VERSION, payload })
-      });
+      }, timeoutMs);
     } catch (e) {
-      throw { code: 'NETWORK', message: e && e.name === 'AbortError' ? 'The server took too long to respond. Please check your connection and try again.' : 'We couldn’t reach the server. Please check your internet connection and try again.' };
-    } finally { clearTimeout(timer); }
+      throw { code: 'NETWORK', message: e && e.name === 'Timeout' ? 'The server took too long to respond. Please check your connection and try again.' : 'We couldn’t reach the server. Please check your internet connection and try again.' };
+    }
     let data;
     try { data = await res.json(); } catch (e) { throw { code: 'BAD_RESPONSE', message: 'The server sent an unexpected response. Please try again in a moment.' }; }
     if (!data || !data.ok) throw (data && data.error) || { code: 'UNKNOWN', message: 'Something went wrong. Please try again.' };
@@ -668,19 +684,21 @@ const Api = {
     if (isPreview()) return PREVIEW_CONFIG;
     const cached = store.get('gp_cfg');
     if (cached && Date.now() - cached.t < 10 * 60 * 1000) return cached.c;
-    let lastErr;
+    let serverErr = null;
     for (let i = 0; i < 3; i++) {
       try {
-        const ctrl = new AbortController(); const timer = setTimeout(() => ctrl.abort(), 20000);
-        const res = await fetch(API_URL + '?action=getConfig&v=' + API_VERSION, { redirect: 'follow', signal: ctrl.signal });
-        clearTimeout(timer);
+        const res = await fetchWithTimeout(API_URL + '?action=getConfig&v=' + API_VERSION, { redirect: 'follow' }, 20000);
         const data = await res.json();
-        if (!data.ok) throw data.error || {};
+        if (!data.ok) { serverErr = data.error || null; throw serverErr; }
         store.set('gp_cfg', { t: Date.now(), c: data.data });
         return data.data;
-      } catch (e) { lastErr = e; await new Promise(r => setTimeout(r, 800 * (i + 1))); }
+      } catch (e) {
+        if (serverErr && serverErr.code === 'MAINTENANCE') break;
+        await new Promise(r => setTimeout(r, 800 * (i + 1)));
+      }
     }
-    throw lastErr && lastErr.message ? lastErr : { message: 'We couldn’t load the form. Please check your connection and try again.' };
+    // Only show messages written by our server; never raw browser errors.
+    throw (serverErr && serverErr.message) ? serverErr : { message: 'We couldn’t reach the GoodPWR server. Please check your connection and try again.' };
   }
 };
 
@@ -1659,59 +1677,75 @@ async function boot() {
    every call is re-authorized on the server)
    ========================================================================= */
 const StaffAuth = {
-  _token: '', _exp: 0, _gisLoading: null,
-  token() { return this._token; },
-  decode(t) { try { return JSON.parse(atob(t.split('.')[1].replace(/-/g, '+').replace(/_/g, '/'))); } catch (e) { return {}; } },
+  _session: '', wired: false, email: '',
+  token() { return this._session; },
   restore() {
-    const saved = store.get('gp_staff_idt');
-    if (saved && saved.t && saved.exp - 60000 > Date.now()) { this._token = saved.t; this._exp = saved.exp; return true; }
+    let saved = null;
+    try { saved = JSON.parse(localStorage.getItem('gp_staff_session') || 'null'); } catch (e) { saved = null; }
+    if (saved && saved.s && saved.until > Date.now()) { this._session = saved.s; return true; }
     return false;
   },
-  loadGis() {
-    if (window.google && google.accounts && google.accounts.id) return Promise.resolve();
-    if (this._gisLoading) return this._gisLoading;
-    this._gisLoading = new Promise((res, rej) => {
-      const sc = document.createElement('script');
-      sc.src = 'https://accounts.google.com/gsi/client'; sc.async = true; sc.defer = true;
-      sc.onload = () => res(); sc.onerror = () => rej(new Error('Could not load Google sign-in. Check your connection or ad blocker.'));
-      document.head.appendChild(sc);
-    });
-    return this._gisLoading;
+  save(s) { try { localStorage.setItem('gp_staff_session', JSON.stringify({ s, until: Date.now() + 6 * 3600 * 1000 - 60000 })); } catch (e) {} },
+  clear() { this._session = ''; try { localStorage.removeItem('gp_staff_session'); } catch (e) {} },
+  wire() {
+    if (this.wired) return; this.wired = true;
+    $('#g-email-form').addEventListener('submit', e => { e.preventDefault(); this.sendCode(); });
+    $('#g-code-form').addEventListener('submit', e => { e.preventDefault(); this.verify(); });
+    $('#g-back').addEventListener('click', () => this.showEmailStep());
+    $('#g-resend').addEventListener('click', () => this.sendCode());
+    $('#g-code').addEventListener('input', e => { e.target.value = e.target.value.replace(/\D/g, '').slice(0, 6); if (e.target.value.length === 6) this.verify(); });
   },
-  async start() {
-    if (this._token && this._exp - 60000 > Date.now() || this.restore()) { Staff.init(); return; }
+  start() {
+    if (this._session || this.restore()) { Staff.init(); return; }
+    this.wire();
     $('#view-staff').hidden = true;
     $('#view-staff-login').hidden = false;
-    const msg = $('#g-msg');
-    if (!CFG.googleClientId) { msg.innerHTML = '<div class="alert warn" style="text-align:left"><b>Google sign-in isn’t set up yet.</b> Add <b>GOOGLE_CLIENT_ID</b> in the Configuration sheet (see setup Step 5b in Code.gs).</div>'; return; }
-    try {
-      await this.loadGis();
-      google.accounts.id.initialize({
-        client_id: CFG.googleClientId,
-        hd: 'getgoodpwr.com',                  // hint only — the server enforces the domain
-        auto_select: true,
-        callback: r => this.onCredential(r)
-      });
-      $('#g-btn').innerHTML = '';
-      google.accounts.id.renderButton($('#g-btn'), { theme: 'filled_black', size: 'large', text: 'signin_with', shape: 'pill', width: 280 });
-      google.accounts.id.prompt();
-    } catch (e) { msg.innerHTML = `<div class="alert err">${esc(e.message)}</div>`; }
+    this.showEmailStep();
   },
-  onCredential(resp) {
-    const t = resp && resp.credential; if (!t) return;
-    const c = this.decode(t);
-    if (!/@getgoodpwr\.com$/i.test(c.email || '')) { $('#g-msg').innerHTML = '<div class="alert err">Please use your @getgoodpwr.com Google account.</div>'; return; }
-    this._token = t; this._exp = (Number(c.exp) || 0) * 1000;
-    store.set('gp_staff_idt', { t, exp: this._exp });
-    $('#g-msg').innerHTML = '';
-    Staff.init();
+  showEmailStep() {
+    $('#g-email-form').hidden = false; $('#g-code-form').hidden = true; $('#g-msg').innerHTML = '';
+    setTimeout(() => $('#g-email').focus(), 50);
+  },
+  async sendCode() {
+    if (this.busy) return;
+    const email = $('#g-email').value.trim().toLowerCase();
+    const form = $('#g-email-form');
+    if (!/@getgoodpwr\.com$/.test(email) || !V.email(email)) { showErrors(form, 'g', { loginEmail: 'Use your @getgoodpwr.com email address.' }, null); return; }
+    clearErrors(form);
+    this.busy = true; const btn = $('#g-send'); buttonBusy(btn, true, 'Sending…'); $('#g-msg').innerHTML = '';
+    try {
+      await Api.call('staffLogin', { email }, { timeoutMs: 30000 });
+      this.email = email;
+      $('#g-email-form').hidden = true; $('#g-code-form').hidden = false;
+      $('#g-msg').innerHTML = `<div class="alert info">We emailed a code to <b>${esc(email)}</b>. It expires in 10 minutes.</div>`;
+      $('#g-code').value = ''; setTimeout(() => $('#g-code').focus(), 50);
+    } catch (err) { $('#g-msg').innerHTML = `<div class="alert err">${esc(err.message)}</div>`; }
+    finally { this.busy = false; buttonBusy(btn, false); }
+  },
+  async verify() {
+    if (this.busy) return;
+    const code = $('#g-code').value.trim();
+    if (!/^\d{6}$/.test(code)) { showErrors($('#g-code-form'), 'g', { loginCode: 'Enter the 6-digit code from the email.' }, null); return; }
+    this.busy = true; const btn = $('#g-verify'); buttonBusy(btn, true, 'Signing in…');
+    try {
+      const r = await Api.call('staffVerify', { email: this.email, code }, { timeoutMs: 30000 });
+      this._session = r.session; this.save(r.session);
+      $('#g-msg').innerHTML = '';
+      Staff.init();
+    } catch (err) {
+      $('#g-msg').innerHTML = `<div class="alert err">${esc(err.message)}</div>`;
+      $('#g-code').value = '';
+      if (err.code === 'CODE_EXPIRED') this.showEmailStep();
+    } finally { this.busy = false; buttonBusy(btn, false); }
   },
   signOut(message) {
-    this._token = ''; this._exp = 0; store.del('gp_staff_idt');
-    try { google.accounts.id.disableAutoSelect(); } catch (e) {}
+    const s = this._session;
+    this.clear();
+    if (s) Api.call('staffLogout', { session: s }).catch(() => {});
     $('#view-staff').hidden = true;
     const who = $('.who'); if (who) who.hidden = true;
-    this.start().then(() => { if (message) $('#g-msg').innerHTML = `<div class="alert info">${esc(message)}</div>`; });
+    this.start();
+    if (message) $('#g-msg').innerHTML = `<div class="alert info">${esc(message)}</div>`;
   }
 };
 
@@ -1720,8 +1754,8 @@ const Staff = {
 
   run(action, payload) {
     if (!IS_STAFF) {
-      // GitHub-hosted: every call carries the Google sign-in token; the server verifies it with Google.
-      return Api.call('staff', { idToken: StaffAuth.token(), action, data: payload || {} }, { timeoutMs: action === 'generateReport' ? 120000 : 60000 })
+      // GitHub-hosted: every call carries the signed-in session; the server checks it every time.
+      return Api.call('staff', { session: StaffAuth.token(), action, data: payload || {}, portalUrl: location.protocol === 'https:' ? location.origin + location.pathname : '' }, { timeoutMs: action === 'generateReport' ? 120000 : 60000 })
         .catch(err => {
           if (err && (err.code === 'NOT_AUTHENTICATED' || err.code === 'NOT_AUTHORIZED')) StaffAuth.signOut(err.message);
           throw err;
@@ -1776,7 +1810,7 @@ const Staff = {
       this.meta = o;
       $('#s-me').textContent = o.me;
       $('#s-sheet').href = o.sheetUrl;
-      $('#s-setup').innerHTML = o.portalUrlSet ? '' : '<div class="alert warn"><b>One setup step left:</b> add your GitHub Pages link to <b>PORTAL_URL</b> in the Configuration sheet so invitation emails have a working link.</div>';
+      $('#s-setup').innerHTML = o.portalUrlSet || (!IS_STAFF && location.protocol === 'https:') ? '' : '<div class="alert warn"><b>One setup step left:</b> open this dashboard once from your GitHub Pages link (…github.io/…/#staff), or add that link to <b>PORTAL_URL</b> in the Configuration sheet.</div>';
       const k = o.kpis;
       const card = (n, label, tab, status, hot) => `<button type="button" class="kpi${hot && n ? ' hot' : ''}" data-kpi-tab="${tab}" data-kpi-status="${esc(status)}"><b>${n}</b><span>${esc(label)}</span></button>`;
       $('#s-kpis').innerHTML =
