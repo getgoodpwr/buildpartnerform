@@ -258,6 +258,13 @@ div.alert.err{display:block;background:var(--err-soft);border-color:#f3c3be;colo
 .hp{position:absolute;left:-10000px;width:1px;height:1px;overflow:hidden}
 footer{max-width:1080px;margin:0 auto;padding:0 16px 32px;color:var(--faint);font-size:13px;display:flex;gap:12px;flex-wrap:wrap;justify-content:space-between}
 [hidden]{display:none!important}
+.zrows{display:flex;flex-direction:column;gap:8px}
+.zrow{display:flex;gap:8px;align-items:center}
+.zrow .input{max-width:150px;text-align:center;letter-spacing:.06em}
+.zrow .to{color:var(--muted);font-size:14px}
+.zrow .zdel{background:none;border:none;color:var(--muted);font-size:20px;line-height:1;cursor:pointer;padding:6px 8px;border-radius:6px}
+.zrow .zdel:hover{background:var(--line-2);color:var(--err)}
+.zadd{margin-top:8px}
 body.staff-route .top nav, body.invite-mode .top nav, body.invite-mode .share, body.invite-mode [data-copy], body.invite-mode .back-portal{display:none!important}
 .invite-strip{display:flex;gap:10px;align-items:center;background:var(--gold-soft);border:1px solid #ecd29a;color:#5b3d07;border-radius:8px;padding:10px 12px;font-size:14px;margin:14px 0 0}
 
@@ -770,6 +777,11 @@ function fieldHtml(f, prefix) {
         opts.map(s => `<label class="choice" data-name="${esc(s[1].toLowerCase())} ${s[0].toLowerCase()}"><input type="checkbox" name="${f.k}" value="${s[0]}"><span><b>${s[0]}</b> ${esc(s[1])}</span></label>`).join('') + '</div>';
       return `<div class="${cls}" data-field="${f.k}"${showIf}><div class="lbl" id="${id}-lbl">${esc(f.label)}${reqMark}</div>${help}${input}<div class="err" id="${id}-err"></div></div>`;
     }
+    case 'zipranges': {
+      input = `<div class="zrows" id="${id}" data-zrows="${f.k}" role="group" aria-labelledby="${id}-lbl" aria-describedby="${desc}">${zipRowHtml(f.k, '', '')}</div>` +
+        `<button type="button" class="btn-link zadd" data-zadd="${f.k}">+ Add another range</button>`;
+      return `<div class="${cls}" data-field="${f.k}"${showIf}><div class="lbl" id="${id}-lbl">${esc(f.label)}${reqMark}</div>${help}${input}<div class="err" id="${id}-err"></div></div>`;
+    }
     case 'bool':
       return `<div class="${cls}" data-field="${f.k}"${showIf}>${f.legal ? `<div class="legal" style="margin-bottom:10px">${esc(f.legal())}</div>` : ''}<label class="agree"><input type="checkbox" ${common}><span>${f.label}${f.req ? ' <span class="req" aria-hidden="true">*</span>' : ''}</span></label><div class="err" id="${id}-err"></div></div>`;
     case 'html':
@@ -783,10 +795,55 @@ function renderSections(sections, prefix) {
   return sections.map(s => `<div class="section"${s.id ? ` id="${s.id}"` : ''}>${s.title ? `<h2>${s.tag ? `<span class="tag">${s.tag}</span>` : ''}${esc(s.title)}</h2>` : ''}${s.note ? `<p class="sec-note">${s.note}</p>` : ''}<div class="grid">${s.fields.map(f => fieldHtml(f, prefix)).join('')}</div>${s.after || ''}</div>`).join('');
 }
 
+/* ---------- ZIP code ranges (From – To rows; a blank "To" = one ZIP) ---------- */
+function zipRowHtml(k, from, to) {
+  return `<div class="zrow"><input class="input" type="text" inputmode="numeric" maxlength="5" placeholder="From ZIP" aria-label="From ZIP" data-zfrom="${k}" value="${esc(from)}"><span class="to">to</span>` +
+    `<input class="input" type="text" inputmode="numeric" maxlength="5" placeholder="To ZIP" aria-label="To ZIP" data-zto="${k}" value="${esc(to)}">` +
+    `<button type="button" class="zdel" data-zdel aria-label="Remove this range">×</button></div>`;
+}
+function readZipRows(root, k) {
+  return $$(`[data-zrows="${k}"] .zrow`, root).map(r => ({ from: $('[data-zfrom]', r).value.trim(), to: $('[data-zto]', r).value.trim() }))
+    .filter(r => r.from || r.to);
+}
+function writeZipRows(root, k, ranges) {
+  const box = $(`[data-zrows="${k}"]`, root); if (!box) return;
+  const list = Array.isArray(ranges) && ranges.length ? ranges : [{ from: '', to: '' }];
+  box.innerHTML = list.map(r => zipRowHtml(k, r.from || '', r.to || '')).join('');
+}
+function zipRangeError(ranges) {
+  for (const r of ranges) {
+    const a = r.from || r.to, b = r.to || r.from;
+    if (!/^\d{5}$/.test(a) || !/^\d{5}$/.test(b)) return 'ZIP codes must be 5 digits (e.g. 63301).';
+    if (Number(a) > Number(b)) return `The first ZIP must be lower than the second (${a} to ${b}).`;
+  }
+  if (ranges.length > 30) return 'Please list 30 ranges or fewer, and describe the rest in the notes.';
+  return '';
+}
+const fmtZipRanges = ranges => (ranges || []).map(r => { const a = r.from || r.to, b = r.to || r.from; return a === b ? a : a + '–' + b; }).join(', ');
+document.addEventListener('click', e => {
+  const add = e.target.closest('[data-zadd]');
+  if (add) {
+    const box = document.querySelector(`[data-zrows="${add.dataset.zadd}"]`);
+    box.insertAdjacentHTML('beforeend', zipRowHtml(add.dataset.zadd, '', ''));
+    const inputs = $$('[data-zfrom]', box); inputs.at(-1).focus();
+    box.dispatchEvent(new Event('input', { bubbles: true }));
+  }
+  const del = e.target.closest('[data-zdel]');
+  if (del) {
+    const box = del.closest('.zrows'), row = del.closest('.zrow');
+    if ($$('.zrow', box).length > 1) row.remove(); else $$('input', row).forEach(i => { i.value = ''; });
+    box.dispatchEvent(new Event('input', { bubbles: true }));
+  }
+});
+document.addEventListener('input', e => {
+  if (e.target.matches('[data-zfrom], [data-zto]')) e.target.value = e.target.value.replace(/\D/g, '').slice(0, 5);
+}, true);
+
 function readValues(root, fields) {
   const out = {};
   fields.forEach(f => {
     if (f.type === 'html') return;
+    if (f.type === 'zipranges') { out[f.k] = readZipRows(root, f.k); return; }
     if (f.type === 'checks' || f.type === 'states') {
       out[f.k] = $$(`input[name="${f.k}"]:checked`, root).map(i => i.value);
       if (f.otherKey) { const o = $(`[name="${f.otherKey}"]`, root); out[f.otherKey] = o ? o.value.trim() : ''; }
@@ -807,6 +864,7 @@ function writeValues(root, fields, vals) {
   fields.forEach(f => {
     if (f.sensitive || !(f.k in vals)) return;
     const v = vals[f.k];
+    if (f.type === 'zipranges') { writeZipRows(root, f.k, v); return; }
     if (f.type === 'checks' || f.type === 'states' || f.type === 'radios') {
       const arr = Array.isArray(v) ? v : [v];
       $$(`input[name="${f.k}"]`, root).forEach(i => { i.checked = arr.indexOf(i.value) !== -1; });
@@ -830,10 +888,11 @@ function validate(fields, vals) {
     const required = f.req || (f.reqIf && f.reqIf(vals));
     const empty = v === '' || v == null || (Array.isArray(v) && !v.length) || v === false;
     if (required && empty) {
-      errs[f.k] = f.type === 'bool' ? 'Please check this box to continue.' : (f.type === 'checks' || f.type === 'states') ? 'Please select at least one.' : f.type === 'radios' ? 'Please choose an option.' : 'This field is required.';
+      errs[f.k] = f.type === 'zipranges' ? 'Please add at least one ZIP code range.' : f.type === 'bool' ? 'Please check this box to continue.' : (f.type === 'checks' || f.type === 'states') ? 'Please select at least one.' : f.type === 'radios' ? 'Please choose an option.' : 'This field is required.';
       return;
     }
     if (empty) return;
+    if (f.type === 'zipranges') { const m = zipRangeError(v); if (m) errs[f.k] = m; return; }
     if (f.type === 'email' && !V.email(v)) errs[f.k] = 'Please enter a valid email address (e.g. name@company.com).';
     if (f.type === 'tel' && !V.phone(v)) errs[f.k] = 'Please enter a valid phone number, including area code.';
     if (f.type === 'url' && !V.url(v)) errs[f.k] = 'Please enter a valid website, e.g. www.yourcompany.com.';
@@ -977,6 +1036,7 @@ const Prospect = {
       { k: 'services', label: 'Services', type: 'checks', req: true, options: () => CFG.services.concat(['Other']), otherKey: 'otherServices', full: true, help: 'Select all that apply.' },
       { k: 'serviceLocations', label: 'Service location(s)', type: 'text', max: 600, placeholder: 'e.g. St. Louis Metro, Kansas City, Columbia', full: true, help: 'Cities, metro areas or counties — separate with commas.' },
       { k: 'statesServed', label: 'States served', type: 'states', req: true, full: true },
+      { k: 'zipRanges', label: 'ZIP code ranges', type: 'zipranges', req: true, full: true, help: 'The ZIP codes you cover, e.g. 63000 to 63399. One ZIP only? Leave “To” empty.' },
       { k: 'mainPoc', label: 'Main POC', type: 'text', max: 120, help: 'Main point of contact. Leave blank if it’s you.' },
       { k: 'title', label: 'Title', type: 'text', max: 120, placeholder: 'e.g. Operations Manager', autocomplete: 'organization-title' },
       { k: 'phone', label: 'Phone number', type: 'tel', req: true, placeholder: '(555) 555-5555', autocomplete: 'tel' },
@@ -986,9 +1046,9 @@ const Prospect = {
     this.fields = F;
     return [
       { title: 'Company', fields: F.slice(0, 6) },
-      { title: 'Services & coverage', fields: F.slice(6, 9) },
-      { title: 'Point of contact', fields: F.slice(9, 13) },
-      { title: 'Notes', fields: F.slice(13) }
+      { title: 'Services & coverage', fields: F.slice(6, 10) },
+      { title: 'Point of contact', fields: F.slice(10, 14) },
+      { title: 'Notes', fields: F.slice(14) }
     ];
   },
   init() {
@@ -1071,7 +1131,8 @@ const Onb = {
       { k: 'classification', label: 'Classification', type: 'text', req: true, max: 200, datalist: () => CFG.classifications, placeholder: 'e.g. Electrical Contractor' },
       { k: 'statesServed', label: 'States served', type: 'states', req: true, full: true },
       { k: 'serviceLocations', label: 'Service location(s)', type: 'text', max: 600, full: true, placeholder: 'e.g. St. Louis Metro, Columbia, Jefferson City', help: 'Cities, metro areas or counties — separate with commas.' },
-      { k: 'coverageZips', label: 'Coverage area / ZIP codes', type: 'textarea', req: true, max: 2000, rows: 3, full: true, placeholder: 'e.g. 63301, 63366, 63390 — or “180 miles from 63390”', help: 'List ZIP codes you cover, or describe your radius from your shop.' }
+      { k: 'zipRanges', label: 'ZIP code ranges', type: 'zipranges', req: true, full: true, help: 'The ZIP codes you cover, e.g. 63000 to 63399. One ZIP only? Leave “To” empty.' },
+      { k: 'coverageZips', label: 'Other coverage details', type: 'textarea', max: 2000, rows: 2, full: true, placeholder: 'e.g. “180 miles from 63390”, counties, or areas you don’t serve' }
     ])] });
     S.push({ name: 'Contact', sections: [sec('Primary contact', 'B', [
       { k: 'primaryContact', label: 'Primary contact / main POC', type: 'text', req: true, max: 120, autocomplete: 'name' },
@@ -1514,7 +1575,7 @@ const Onb = {
     const services = (vals.services || []).filter(s => s !== 'Other').concat(vals.otherServices ? ['Other: ' + vals.otherServices] : []);
     const sysExp = (vals.systemExperience || []).concat(vals.systemExperienceOther ? [vals.systemExperienceOther] : []);
     $('#o-review').innerHTML = `<div class="section"><h2>Review your answers</h2><p class="sec-note">Check everything, then sign below. Use “Edit” to change a section.</p>
-      ${block('Business', 1, [['Business name', vals.businessName], ['Address', vals.businessAddress], ['Phone', vals.businessPhone], ['Website', vals.website], ['License number(s)', vals.licenseNumbers], ['Classification', vals.classification], ['States served', vals.statesServed], ['Service location(s)', vals.serviceLocations], ['Coverage / ZIPs', vals.coverageZips]])}
+      ${block('Business', 1, [['Business name', vals.businessName], ['Address', vals.businessAddress], ['Phone', vals.businessPhone], ['Website', vals.website], ['License number(s)', vals.licenseNumbers], ['Classification', vals.classification], ['States served', vals.statesServed], ['Service location(s)', vals.serviceLocations], ['ZIP code ranges', fmtZipRanges(vals.zipRanges)], ['Other coverage', vals.coverageZips]])}
       ${block('Primary contact', 2, [['Name', vals.primaryContact], ['Title', vals.primaryContactTitle], ['Phone', vals.primaryContactPhone], ['Alt. phone', vals.altPhone], ['Email', vals.primaryEmail]])}
       ${block('Services & capacity', 3, [['Services', services], ['Years in business', vals.yearsInBusiness], ['Years in solar', vals.yearsInSolar], ['System experience', sysExp], ['Crews', vals.numCrews], ['Electricians', vals.numElectricians], ['Service techs', vals.numServiceTechs], ['Installs / month', vals.installsPerMonth], ['Avg. system size (kW)', vals.avgSystemSizeKw], ['Coverage radius (mi)', vals.coverageRadiusMiles]])}
       ${block('Site Capture', 4, [['Answer', vals.siteCaptureStatus], ['Profile for', vals.scUserName], ['Their email', vals.scUserEmail], ['Vendor ID', vals.scVendorId]])}
