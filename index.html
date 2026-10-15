@@ -629,6 +629,25 @@ const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&a
 const uuid = () => (crypto.randomUUID ? crypto.randomUUID() : 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => { const r = crypto.getRandomValues(new Uint8Array(1))[0] & 15; return (c === 'x' ? r : (r & 3) | 8).toString(16); }));
 const fmtBytes = (n) => n < 1024 ? n + ' B' : n < 1048576 ? (n / 1024).toFixed(0) + ' KB' : (n / 1048576).toFixed(1) + ' MB';
 const isPreview = () => !/^https:\/\/script\.google\.com\/macros\/s\/[\w-]+\/exec$/.test(API_URL);
+/* Saved progress: kept on this device for 7 days so clients can close the page and come back.
+   Falls back to (and migrates from) the per-tab storage used by the previous version. */
+const SAVE_DAYS = 7;
+const saved = {
+  get(k) {
+    try {
+      const raw = JSON.parse(localStorage.getItem(k) || 'null');
+      if (raw && raw.exp > Date.now() && raw.v) return raw.v;
+      if (raw) localStorage.removeItem(k);
+    } catch (e) { /* storage blocked: fall through */ }
+    return store.get(k);   // progress started before this update (same tab)
+  },
+  set(k, v) {
+    let ok = false;
+    try { localStorage.setItem(k, JSON.stringify({ v, exp: Date.now() + SAVE_DAYS * 86400000 })); ok = true; } catch (e) {}
+    if (!ok) store.set(k, v);
+  },
+  del(k) { try { localStorage.removeItem(k); } catch (e) {} store.del(k); }
+};
 const store = {
   get(k) { try { return JSON.parse(sessionStorage.getItem(k) || 'null'); } catch (e) { return null; } },
   set(k, v) { try { sessionStorage.setItem(k, JSON.stringify(v)); } catch (e) { /* storage full or blocked: keep going */ } },
@@ -976,7 +995,7 @@ const Prospect = {
     const root = $('#prospect-form');
     this.key = draftKey('gp_prospect_draft');
     $('#p-fields').innerHTML = renderSections(this.sections(), 'p');
-    let draft = store.get(this.key);
+    let draft = saved.get(this.key);
     if (!draft || !draft.submissionKey) draft = { submissionKey: uuid(), startedAt: Date.now(), values: {} };
     this.draft = draft;
     writeValues(root, this.fields, draft.values);
@@ -987,7 +1006,7 @@ const Prospect = {
     wireDynamic(root, this.fields, vals => {
       if (firstRun) { firstRun = false; return; }
       clearTimeout(saveT);
-      saveT = setTimeout(() => { this.draft.values = vals; store.set(this.key, this.draft); $('#p-save-note').textContent = 'Progress saved on this device'; }, 400);
+      saveT = setTimeout(() => { this.draft.values = vals; saved.set(this.key, this.draft); $('#p-save-note').textContent = 'Progress saved on this device'; }, 400);
     });
     if (draft.values && Object.keys(draft.values).length) $('#p-save-note').textContent = 'We restored your progress';
     root.addEventListener('submit', e => { e.preventDefault(); this.submit(); });
@@ -1001,11 +1020,11 @@ const Prospect = {
     if (showErrors(root, 'p', errs, alertBox)) return;
     this.busy = true; buttonBusy(btn, true, 'Submitting…'); alertBox.innerHTML = '';
     try {
-      const res = await Api.call('submitProspect', {
+      const res = await withRetry(() => Api.call('submitProspect', {
         submissionKey: this.draft.submissionKey, fields: vals, hp: $('[name=hp]', root).value, inviteToken: INVITE ? INVITE.token : '',
         elapsedMs: Date.now() - (this.draft.startedAt || Date.now()), clientVersion: CLIENT_VERSION
-      });
-      store.del(this.key);
+      }));
+      saved.del(this.key);
       root.hidden = true;
       const done = $('#p-done'); done.hidden = false;
       done.innerHTML = doneHtml('Submission received', res.referenceId,
@@ -1126,7 +1145,7 @@ const Onb = {
     lastStep.insertBefore(rev, lastStep.firstChild);
     $('#o-stepper').innerHTML = this.steps.slice(1).map((s, i) => `<button type="button" data-goto="${i + 1}" role="tab">${i + 1}. ${esc(s.name)}</button>`).join('');
 
-    let draft = store.get(this.key);
+    let draft = saved.get(this.key);
     if (!draft || !draft.sessionId) draft = { sessionId: uuid(), startedAt: Date.now(), values: {}, uploads: [], step: 0, maxStep: 0 };
     this.draft = draft;
     this.uploads = (draft.uploads || []).filter(u => u.status === 'ok');
@@ -1173,7 +1192,7 @@ const Onb = {
         <li><span>Crew &amp; capacity numbers<small>Crews, electricians, installs/month</small></span></li>
       </ul>
       <div class="limits" style="margin-top:14px">Accepted files: <b>${u.allowedExtensions.map(x => x.toUpperCase()).join(', ')}</b> · up to <b>${u.maxFileMb} MB</b> each · <b>${u.maxTotalMb} MB</b> total. Phone photos are optimized automatically, and files upload in the background while you keep filling in the form.</div>
-      <div class="alert info" style="margin-bottom:0">Your progress is kept on this device if you reload the page (bank details excluded). Finish in one sitting where possible — unsubmitted uploads are deleted after 48 hours.</div>
+      <div class="alert info" style="margin-bottom:0">Your progress is saved on this device for 7 days — you can close the page and come back using the same link (bank details are never saved, you’ll re-enter those).</div>
     </div>`;
   },
 
@@ -1188,7 +1207,7 @@ const Onb = {
     this.draft.values = safe;
     this.draft.uploads = this.uploads.filter(u => u.status === 'ok').map(u => ({ id: u.id, category: u.category, name: u.name, size: u.size, status: 'ok', token: u.token }));
     this.draft.step = this.step;
-    store.set(this.key, this.draft);
+    saved.set(this.key, this.draft);
     $('#o-save-note').textContent = 'Progress saved on this device';
   },
 
@@ -1329,15 +1348,16 @@ const Onb = {
         file = await shrinkImage(file);
         item.size = file.size; item.name = file.name;
       }
-      if (file.size > CFG.uploads.maxFileMb * 1048576) throw { message: `Still larger than ${CFG.uploads.maxFileMb} MB after resizing. Please use a smaller file.` };
-      const b64 = await toBase64(file);
-      item.stage = 'Uploading'; this.paintItem(item);
-      const res = await uploadWithProgress({ sessionId: this.draft.sessionId, inviteToken: INVITE ? INVITE.token : '', category: item.category, fileName: file.name, mimeType: file.type, size: file.size, dataBase64: b64 },
-        pct => { item.pct = pct; item.stage = pct >= 100 ? 'Saving…' : 'Uploading'; this.paintItem(item); });
+      if (file.size > CFG.uploads.maxFileMb * 1048576) throw { message: `This file is larger than ${CFG.uploads.maxFileMb} MB. Please use a smaller file.` };
+      const base = { sessionId: this.draft.sessionId, inviteToken: INVITE ? INVITE.token : '', category: item.category, fileName: file.name, mimeType: file.type, size: file.size };
+      const progress = pct => { item.pct = pct; item.stage = 'Uploading'; this.paintItem(item); };
+      const res = file.size <= SMALL_FILE
+        ? await withRetry(async () => { item.stage = 'Uploading'; this.paintItem(item); return Api.call('uploadFile', Object.assign({ dataBase64: await toBase64(file) }, base), { timeoutMs: 120000 }); })
+        : await uploadInPieces(file, base, progress);
       item.status = 'ok'; item.token = res.uploadToken; item.name = res.fileName; item.size = res.size; item.file = null;
     } catch (err) {
       item.status = 'bad'; item.error = (err && err.message) || 'Upload failed.';
-      item.retryable = !err || ['NETWORK', 'BAD_RESPONSE', 'BUSY', 'QUOTA', 'SERVER_ERROR', 'RATE_LIMITED'].indexOf(err.code) !== -1;
+      item.retryable = !err || RETRYABLE.indexOf(err.code) !== -1 || err.code === 'UPLOAD_EXPIRED';
     }
   },
 
@@ -1537,14 +1557,14 @@ const Onb = {
     fields.linkedProspectId = this.linkedProspectId || '';
     this.busy = true; buttonBusy(btn, true, 'Submitting securely…'); $('#o-back').disabled = true; alertBox.innerHTML = '';
     try {
-      const res = await Api.call('submitOnboarding', {
+      const res = await withRetry(() => Api.call('submitOnboarding', {
         sessionId: this.draft.sessionId, fields,
         uploads: this.uploads.filter(u => u.status === 'ok').map(u => ({ token: u.token, category: u.category })),
         signaturePng: this.sig.method === 'drawn' ? this.sig.dataUrl : '',
         typedSignature: this.sig.method === 'typed' ? $('#o-typedSignature').value.trim() : '',
         hp: $('[name=hp]', root).value, inviteToken: INVITE ? INVITE.token : '', elapsedMs: Date.now() - (this.draft.startedAt || Date.now()), clientVersion: CLIENT_VERSION
-      }, { timeoutMs: 120000 });
-      store.del(this.key);
+      }, { timeoutMs: 120000 }), 4, n => { btn.innerHTML = '<span class="spin" aria-hidden="true"></span>Weak connection — still trying (' + n + ')…'; });
+      saved.del(this.key);
       if (INVITE) store.del('gp_invite_token');
       // Clear sensitive inputs from the page immediately.
       $$('input[type=password], [name=achAccountName], [name=bankName], [name=bankAddress]', root).forEach(i => { i.value = ''; });
@@ -1562,7 +1582,7 @@ const Onb = {
         if (err.fields.docs_general) { const g = $('#o-docs-general'); if (g) { g.hidden = false; g.textContent = err.fields.docs_general; } }
         setTimeout(() => showErrors($(`.o-step[data-step="${firstStep}"]`), 'o', err.fields, $('#o-alert')), 60);
       } else if (err && (err.code === 'ALREADY_SUBMITTED' || /^INVITE_/.test(err.code || ''))) {
-        if (err.code === 'ALREADY_SUBMITTED') store.del(this.key);
+        if (err.code === 'ALREADY_SUBMITTED') saved.del(this.key);
         alertBox.innerHTML = `<div class="alert warn">${esc(err.message)}</div>`;
       } else {
         alertBox.innerHTML = serverErrorBox(err);
@@ -1575,25 +1595,39 @@ const Onb = {
 };
 
 /* ---------- File utilities ---------- */
-function uploadWithProgress(payload, onProgress) {
-  if (isPreview()) return Api.call('uploadFile', payload);
-  return new Promise((resolve, reject) => {
-    const xhr = new XMLHttpRequest();
-    xhr.open('POST', API_URL);
-    xhr.setRequestHeader('Content-Type', 'text/plain;charset=utf-8');   // simple request: no CORS preflight
-    xhr.timeout = 180000;
-    xhr.upload.onprogress = e => { if (e.lengthComputable) onProgress(Math.min(100, Math.round(e.loaded / e.total * 100))); };
-    xhr.upload.onload = () => onProgress(100);
-    xhr.onload = () => {
-      let data = null;
-      try { data = JSON.parse(xhr.responseText); } catch (e) { return reject({ code: 'BAD_RESPONSE', message: 'The server sent an unexpected response. Please retry this file.' }); }
-      if (!data || !data.ok) return reject((data && data.error) || { code: 'UNKNOWN', message: 'Upload failed. Please retry.' });
-      resolve(data.data);
-    };
-    xhr.onerror = () => reject({ code: 'NETWORK', message: 'Connection problem — tap Retry.' });
-    xhr.ontimeout = () => reject({ code: 'NETWORK', message: 'This upload took too long. Check your connection and tap Retry.' });
-    xhr.send(JSON.stringify({ action: 'uploadFile', apiVersion: API_VERSION, payload }));
-  });
+const SMALL_FILE = 4 * 1024 * 1024;   // up to 4 MB: one request. Bigger: 4 MB pieces straight into Google Drive.
+const RETRYABLE = ['NETWORK', 'BAD_RESPONSE', 'BUSY', 'QUOTA', 'SERVER_ERROR', 'RATE_LIMITED'];
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+
+/* Retries temporary problems (weak signal, busy server) a few times before showing an error. */
+async function withRetry(fn, tries = 4, onRetry) {
+  let last;
+  for (let i = 0; i < tries; i++) {
+    try { return await fn(i); }
+    catch (err) {
+      last = err;
+      if (!err || RETRYABLE.indexOf(err.code) === -1 || i === tries - 1) throw err;
+      if (onRetry) onRetry(i + 1);
+      await sleep([1500, 4000, 9000, 15000][i] || 15000);
+    }
+  }
+  throw last;
+}
+
+async function uploadInPieces(file, base, onProgress) {
+  const start = await withRetry(() => Api.call('uploadStart', base, { timeoutMs: 60000 }));
+  if (start.done) return start;                       // identical file already uploaded
+  const chunk = start.chunkSize;
+  let offset = start.received || 0;
+  onProgress(Math.round(offset / file.size * 100));
+  while (true) {
+    const piece = file.slice(offset, Math.min(offset + chunk, file.size));
+    const b64 = await toBase64(piece);
+    const r = await withRetry(() => Api.call('uploadChunk', { sessionId: base.sessionId, uploadId: start.uploadId, offset, dataBase64: b64 }, { timeoutMs: 120000 }));
+    if (r.done) { onProgress(100); return r; }
+    offset = r.received;                              // server tells us where to continue (also fixes any mismatch)
+    onProgress(Math.min(99, Math.round(offset / file.size * 100)));
+  }
 }
 
 function toBase64(file) {
