@@ -302,6 +302,15 @@ body.staff-mode .top nav{display:flex}
 .kpi b{display:block;font-family:var(--head);font-size:34px;line-height:1;font-variant-numeric:tabular-nums}
 .kpi span{display:block;font-size:13px;color:var(--muted);margin-top:6px;line-height:1.3}
 .kpi.hot b{color:var(--gold-ink)}
+.kpi.alarm{border:2px solid #e0902a;background:#fff6e6}
+.kpi.alarm b{color:#b45309}
+.tab-badge{display:inline-block;min-width:20px;padding:1px 6px;margin-left:4px;border-radius:999px;background:#e0902a;color:#fff;font-size:12px;line-height:18px;text-align:center}
+.sc-alert{display:flex;gap:12px;align-items:center;justify-content:space-between;flex-wrap:wrap;background:#fff6e6;border:2px solid #e0902a;border-radius:var(--radius);padding:12px 16px;margin-bottom:14px;color:#5b3d07}
+.sc-alert b{color:#8a4310}
+.panel.sc-hot{border:2px solid #e0902a;background:#fffaf0}
+.flag{display:inline-block;font-size:11.5px;font-weight:800;letter-spacing:.02em;text-transform:uppercase;border-radius:6px;padding:2px 7px;background:#e0902a;color:#fff;margin-left:6px;vertical-align:middle}
+.panel.fin{border:2px solid #9aa9c2;background:#f6f8fc}
+tr.needs td:first-child{box-shadow:inset 4px 0 0 #e0902a}
 .dash-grid{display:grid;grid-template-columns:360px 1fr;gap:18px;align-items:start}
 @media (max-width:980px){.dash-grid{grid-template-columns:1fr}}
 .card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:18px}
@@ -541,6 +550,7 @@ dialog.drawer::backdrop{background:rgba(34,32,29,.45)}
       </div>
     </div>
     <div id="s-setup"></div>
+    <div id="s-sc-alert"></div>
     <div class="kpis" id="s-kpis"></div>
     <div class="dash-grid">
       <form class="card send-card" id="s-send" novalidate>
@@ -567,6 +577,7 @@ dialog.drawer::backdrop{background:rgba(34,32,29,.45)}
           <button type="button" role="tab" data-tab="invites" aria-selected="true">Invitations</button>
           <button type="button" role="tab" data-tab="onboarding" aria-selected="false">Onboarding</button>
           <button type="button" role="tab" data-tab="prospect" aria-selected="false">Prospects</button>
+          <button type="button" role="tab" data-tab="sitecapture" aria-selected="false">Site Capture <span class="tab-badge" id="s-sc-badge" hidden></span></button>
         </div>
         <div class="toolbar">
           <input class="input" type="search" id="s-q" placeholder="Search name, email, company, reference…" aria-label="Search">
@@ -1321,7 +1332,7 @@ const Onb = {
   uploadDefs() {
     const c = CFG.uploads.categories;
     return [
-      { cat: 'w9', title: 'Completed W-9', desc: 'Signed IRS Form W-9 for the business. Stored in the restricted finance folder only.', req: true, lock: true, max: c.w9.max },
+      { cat: 'w9', title: 'Completed W-9', desc: 'Signed IRS Form W-9 for the business.', req: true, max: c.w9.max },
       { cat: 'licenses', title: 'Licenses & certifications', desc: 'Any licenses/certifications required by the state and/or AHJ where work will be performed (NABCEP, electrical licenses, battery certifications, good standing certificate…).', req: true, max: c.licenses.max },
       { cat: 'insurance_gl', title: 'General liability insurance (COI)', desc: 'Current certificate of insurance for general liability.', req: true, max: c.insurance_gl.max },
       { cat: 'workers_comp', title: 'Workers’ compensation', desc: 'Current workers’ compensation certificate — or your exemption letter if you have no employees.', req: true, max: c.workers_comp.max },
@@ -1968,7 +1979,10 @@ const Staff = {
         card(k.onboardingToReview, 'Onboarding to review', 'onboarding', 'New', true) +
         card(k.onboardingMoreInfo, 'Waiting for more info', 'onboarding', 'More Information Required') +
         card(k.prospectsNew, 'New prospects', 'prospect', 'New', true) +
-        card(k.siteCaptureOpen, 'Open Site Capture requests', 'onboarding', '');
+        `<button type="button" class="kpi${k.siteCaptureNew ? ' alarm' : ''}" data-kpi-tab="sitecapture" data-kpi-status=""><b>${k.siteCaptureOpen}</b><span>${k.siteCaptureNew ? esc(k.siteCaptureNew + ' new Site Capture profile request' + (k.siteCaptureNew > 1 ? 's' : '') + ' — action needed') : 'Open Site Capture requests'}</span></button>`;
+      const badge = $('#s-sc-badge'); badge.hidden = !k.siteCaptureOpen; badge.textContent = k.siteCaptureOpen || '';
+      $('#s-sc-alert').innerHTML = k.siteCaptureNew ? `<div class="sc-alert" role="alert"><span>🔔 <b>${k.siteCaptureNew} Site Capture profile request${k.siteCaptureNew > 1 ? 's are' : ' is'} waiting.</b> Please create the user profile, then mark it Fulfilled.</span><button type="button" class="btn btn-dark" id="s-sc-view">View requests</button></div>` : '';
+      if (k.siteCaptureNew) $('#s-sc-view').addEventListener('click', () => this.switchTab('sitecapture', ''));
       $$('#s-kpis [data-kpi-tab]').forEach(b => b.addEventListener('click', () => { this.switchTab(b.dataset.kpiTab, b.dataset.kpiStatus); }));
     } catch (err) {
       $('#s-setup').innerHTML = `<div class="alert err">${esc(err.message)}</div>`;
@@ -1976,6 +1990,11 @@ const Staff = {
   },
 
   fillStatusFilter() {
+    if (this.tab === 'sitecapture') {
+      const sl = (this.meta && this.meta.statuses.scr) || [];
+      $('#s-status').innerHTML = '<option value="">Open (New + In Progress)</option><option value="All"' + (this.status === 'All' ? ' selected' : '') + '>All requests</option>' + sl.map(s => `<option${s === this.status ? ' selected' : ''}>${esc(s)}</option>`).join('');
+      return;
+    }
     const list = this.tab === 'invites' ? ((this.meta && this.meta.statuses.invite) || []) : ((this.meta && this.meta.statuses.app) || []);
     $('#s-status').innerHTML = '<option value="">All statuses</option>' + list.map(s => `<option${s === this.status ? ' selected' : ''}>${esc(s)}</option>`).join('');
   },
@@ -1994,10 +2013,12 @@ const Staff = {
     try {
       const data = this.tab === 'invites'
         ? await this.run('listInvites', { page: this.page, q: this.q, status: this.status })
-        : await this.run('listRecords', { kind: this.tab, page: this.page, q: this.q, status: this.status });
+        : this.tab === 'sitecapture'
+          ? await this.run('listSiteCapture', { page: this.page, q: this.q, status: this.status })
+          : await this.run('listRecords', { kind: this.tab, page: this.page, q: this.q, status: this.status });
       if (req !== this._req) return;
       this.page = data.page;
-      box.innerHTML = data.rows.length ? this.renderTable(data.rows) : `<div class="empty">${this.q || this.status ? 'Nothing matches these filters.' : this.tab === 'invites' ? 'No invitations yet. Send your first form on the left.' : 'No submissions yet.'}</div>`;
+      box.innerHTML = data.rows.length ? this.renderTable(data.rows) : `<div class="empty">${this.q || this.status ? 'Nothing matches these filters.' : this.tab === 'invites' ? 'No invitations yet. Send your first form on the left.' : this.tab === 'sitecapture' ? 'No open Site Capture requests. 🎉' : 'No submissions yet.'}</div>`;
       $('#s-pager').innerHTML = data.total ? `<span>${data.total} total · page ${data.page} of ${data.pages}</span><span><button class="btn btn-ghost" type="button" data-page="${data.page - 1}" ${data.page <= 1 ? 'disabled' : ''}>Previous</button> <button class="btn btn-ghost" type="button" data-page="${data.page + 1}" ${data.page >= data.pages ? 'disabled' : ''}>Next</button></span>` : '';
     } catch (err) {
       if (req !== this._req) return;
@@ -2021,6 +2042,14 @@ const Staff = {
             ${open ? `<button type="button" class="btn-link" data-resend="${esc(r['Invite ID'])}">Resend</button><button type="button" class="btn-link" data-revoke="${esc(r['Invite ID'])}">Cancel</button>` : ''}</td></tr>`;
       }).join('') + '</tbody></table>';
     }
+    if (this.tab === 'sitecapture') {
+      return `<table class="tbl"><thead><tr><th>Request</th><th>Company</th><th>Profile needed for</th><th>Status</th><th>Requested</th></tr></thead><tbody>` + rows.map(r =>
+        `<tr class="click${r['Status'] === 'New' ? ' needs' : ''}" tabindex="0" data-open="onboarding|${esc(r['Application ID'])}"><td data-l="Request" class="mono"><div>${esc(r['Request ID'])}<small>${esc(r['Application ID'])}</small></div></td>
+          <td data-l="Company"><div><b>${esc(r['Company'])}</b><small>${esc(String(r['Site Capture Answer'] || '').replace(' — please contact me', ''))}${r['Existing Vendor ID'] ? ' · Vendor ID ' + esc(r['Existing Vendor ID']) : ''}</small></div></td>
+          <td data-l="Profile for"><div>${r['Requested User Name'] ? '<b>' + esc(r['Requested User Name']) + '</b>' : '—'}<small>${esc(r['Requested User Email'])}${r['Requested User Phone'] ? ' · ' + esc(r['Requested User Phone']) : ''}</small></div></td>
+          <td data-l="Status"><div>${this.chip(r['Status'])}${r['Status'] === 'New' ? '<span class="flag">Action needed</span>' : ''}${r['Fulfilled By'] ? '<small>by ' + esc(String(r['Fulfilled By']).split('@')[0]) + '</small>' : ''}</div></td>
+          <td data-l="Requested"><div>${this.fmt(r['Created At'])}</div></td></tr>`).join('') + '</tbody></table>';
+    }
     if (this.tab === 'prospect') {
       return `<table class="tbl"><thead><tr><th>Reference</th><th>Company</th><th>States</th><th>Status</th><th>Submitted</th></tr></thead><tbody>` + rows.map(r =>
         `<tr class="click" tabindex="0" data-open="prospect|${esc(r['Record ID'])}"><td data-l="Reference" class="mono"><div>${esc(r['Record ID'])}</div></td>
@@ -2030,9 +2059,9 @@ const Staff = {
           <td data-l="Submitted"><div>${this.fmt(r['Created At'])}</div></td></tr>`).join('') + '</tbody></table>';
     }
     return `<table class="tbl"><thead><tr><th>Reference</th><th>Business</th><th>Site Capture</th><th>Docs</th><th>Status</th><th>Submitted</th></tr></thead><tbody>` + rows.map(r =>
-      `<tr class="click" tabindex="0" data-open="onboarding|${esc(r['Record ID'])}"><td data-l="Reference" class="mono"><div>${esc(r['Record ID'])}</div></td>
+      `<tr class="click${r['SC Request Status'] === 'New' ? ' needs' : ''}" tabindex="0" data-open="onboarding|${esc(r['Record ID'])}"><td data-l="Reference" class="mono"><div>${esc(r['Record ID'])}</div></td>
         <td data-l="Business"><div><b>${esc(r['Business Name'])}</b><small>${esc(r['Primary Contact'])} · ${esc(r['Primary Email'])}</small></div></td>
-        <td data-l="Site Capture"><div>${esc(String(r['Site Capture Status'] || '').replace(' — please contact me', ''))}</div></td>
+        <td data-l="Site Capture"><div>${esc(String(r['Site Capture Status'] || '').replace(' — please contact me', ''))}${r['SC Request Status'] === 'New' ? '<span class="flag">Needs profile</span>' : r['SC Request Status'] ? '<small>Request: ' + esc(r['SC Request Status']) + '</small>' : ''}</div></td>
         <td data-l="Docs"><div>${esc(r['Document Count'])}${r['Last Error Code'] ? '<small style="color:var(--err)">' + esc(r['Last Error Code']) + '</small>' : ''}</div></td>
         <td data-l="Status"><div>${this.chip(r['Status'])}</div></td>
         <td data-l="Submitted"><div>${this.fmt(r['Created At'])}</div></td></tr>`).join('') + '</tbody></table>';
@@ -2102,11 +2131,15 @@ const Staff = {
     $('#d-title').textContent = r.title || r.id;
     $('#d-sub').innerHTML = `${esc(r.id)} · ${esc(r.kind === 'onboarding' ? 'Onboarding' : 'Prospect')} · ${this.chip(r.status)}`;
     const opts = [r.status].concat(r.allowed.filter(s => s !== r.status)).map(s => `<option value="${esc(s)}"${s === r.status ? ' selected' : ''}>${esc(s === r.status ? s + ' (current)' : s)}</option>`).join('');
-    const sc = r.siteCapture ? `<div class="panel"><h3>Site Capture request · ${esc(r.siteCapture.id)}</h3>
-      <dl class="kv"><dt>Answer</dt><dd>${esc(r.siteCapture.answer)}</dd>${r.siteCapture.user ? `<dt>Profile for</dt><dd>${esc(r.siteCapture.user)} · ${esc(r.siteCapture.userEmail)}</dd>` : ''}${r.siteCapture.vendorId ? `<dt>Vendor ID</dt><dd>${esc(r.siteCapture.vendorId)}</dd>` : ''}</dl>
+    const scNew = r.siteCapture && r.siteCapture.status === 'New';
+    const sc = r.siteCapture ? `<div class="panel${scNew ? ' sc-hot' : ''}"><h3>Site Capture request · ${esc(r.siteCapture.id)} ${this.chip(r.siteCapture.status)}${scNew ? '<span class="flag">Action needed</span>' : ''}</h3>
+      ${scNew ? '<p class="sub" style="margin:0 0 8px">Create this Site Capture user profile, then set the request to <b>Fulfilled</b> (or In Progress while you work on it).</p>' : ''}
+      <dl class="kv"><dt>Answer</dt><dd>${esc(r.siteCapture.answer)}</dd>${r.siteCapture.user ? `<dt>Profile for</dt><dd>${esc(r.siteCapture.user)} · ${esc(r.siteCapture.userEmail)}${r.siteCapture.userPhone ? ' · ' + esc(r.siteCapture.userPhone) : ''}</dd>` : ''}${r.siteCapture.vendorId ? `<dt>Vendor ID</dt><dd>${esc(r.siteCapture.vendorId)}</dd>` : ''}${r.siteCapture.details ? `<dt>Details</dt><dd>${esc(r.siteCapture.details)}</dd>` : ''}${r.siteCapture.fulfilledBy ? `<dt>Fulfilled by</dt><dd>${esc(r.siteCapture.fulfilledBy)}</dd>` : ''}</dl>
       <div class="row" style="margin-top:10px"><select class="select" id="d-sc-status">${[r.siteCapture.status].concat(r.siteCapture.allowed.filter(s => s !== r.siteCapture.status)).map(s => `<option value="${esc(s)}">${esc(s === r.siteCapture.status ? s + ' (current)' : s)}</option>`).join('')}</select><button type="button" class="btn btn-ghost" data-act="sc-save">Update request</button></div></div>` : '';
-    const docs = r.kind === 'onboarding' ? `<div class="panel"><h3>Documents (${r.documents.length})</h3>${r.documents.length ? '<ul class="docs">' + r.documents.map(d => `<li><span><b>${esc(d.category)}</b><small>${esc(d.name)}${d.size ? ' · ' + fmtBytes(d.size) : ''}</small></span>${d.restricted ? '<small>Finance only</small>' : d.url ? `<a href="${esc(d.url)}" target="_blank" rel="noopener">Open</a>` : ''}</li>`).join('') + '</ul>' : '<p class="sub">No documents.</p>'}${r.folderUrl ? `<p style="margin:10px 0 0"><a href="${esc(r.folderUrl)}" target="_blank" rel="noopener">Open documents folder in Drive →</a></p>` : ''}</div>` : '';
-    $('#d-body').innerHTML = `
+    const f = r.canSeeFinance ? r.finance : null;
+    const fin = f ? `<div class="panel fin"><h3>ACH payments · Finance only 🔒</h3>${f.found ? `<dl class="kv">${[['Name on account', f.nameOnAccount], ['Bank', f.bankName], ['Bank address', f.bankAddress], ['Routing number', f.routing], ['Account number', f.account], ['Account type', f.accountType], ['ACH authorization', f.authorized ? 'Accepted' : 'Not accepted'], ['Authorized by', f.authorizedBy], ['Authorized at', f.authorizedAt], ['Verification', f.verification]].filter(x => x[1]).map(x => `<dt>${esc(x[0])}</dt><dd${/number/.test(x[0]) ? ' class="mono"' : ''}>${esc(x[1])}</dd>`).join('')}</dl><p style="margin:8px 0 0"><a href="${esc(f.sheetUrl)}" target="_blank" rel="noopener">Open in Finance workbook →</a></p>` : '<p class="sub">No bank details on file for this application.</p>'}<p class="sub" style="margin:8px 0 0;font-size:12.5px">Only people listed in FINANCE_EMAILS / ADMIN_EMAILS see this. Each view is logged.</p></div>` : '';
+    const docs = r.kind === 'onboarding' ? `<div class="panel"><h3>Documents (${r.documents.length})</h3>${r.documents.length ? '<ul class="docs">' + r.documents.map(d => `<li><span><b>${esc(d.category)}</b><small>${esc(d.name)}${d.size ? ' · ' + fmtBytes(d.size) : ''}</small></span>${d.restricted ? '<small>Being moved — run setupDatabase</small>' : d.url ? `<a href="${esc(d.url)}" target="_blank" rel="noopener">Open</a>` : ''}</li>`).join('') + '</ul>' : '<p class="sub">No documents.</p>'}${r.folderUrl ? `<p style="margin:10px 0 0"><a href="${esc(r.folderUrl)}" target="_blank" rel="noopener">Open documents folder in Drive →</a></p>` : ''}</div>` : '';
+    $('#d-body').innerHTML = `${scNew ? sc : ''}
       <div class="panel"><h3>Review</h3>
         <div class="row"><select class="select" id="d-status" aria-label="Status">${opts}</select><button type="button" class="btn btn-primary" data-act="save">Save status</button></div>
         <label class="sr-only" for="d-msg">Message to applicant</label>
@@ -2116,9 +2149,10 @@ const Staff = {
       </div>
       <div class="panel"><h3>Result</h3>
         <div class="row"><button type="button" class="btn btn-dark" data-act="report">Generate PDF summary</button><a class="btn btn-ghost" href="${esc(r.sheetUrl)}" target="_blank" rel="noopener">Open in database</a></div>
+        ${f && f.found ? '<label style="display:flex;gap:8px;align-items:center;margin-top:10px;font-size:14px"><input type="checkbox" id="d-incfin" checked> Include bank details (PDF is saved in the restricted Finance folder)</label>' : ''}
         <div id="d-report"></div>
       </div>
-      ${sc}${docs}
+      ${scNew ? '' : sc}${fin}${docs}
       ${r.sections.map(s => `<div class="panel"><h3>${esc(s.title)}</h3><dl class="kv">${s.rows.map(x => `<dt>${esc(x[0])}</dt><dd>${esc(x[1])}</dd>`).join('')}</dl></div>`).join('')}`;
   },
 
@@ -2135,14 +2169,15 @@ const Staff = {
     }
     if (b.dataset.act === 'sc-save') {
       buttonBusy(b, true, 'Saving…');
-      try { await this.run('updateStatus', { kind: 'sitecapture', id: r.siteCapture.id, status: $('#d-sc-status').value }); toast('Site Capture request updated'); this.openRecord(r.kind, r.id); this.loadOverview(); }
+      try { await this.run('updateStatus', { kind: 'sitecapture', id: r.siteCapture.id, status: $('#d-sc-status').value }); toast('Site Capture request updated'); this.openRecord(r.kind, r.id); this.loadOverview(); this.loadList(); }
       catch (err) { toast(err.message); buttonBusy(b, false); }
     }
     if (b.dataset.act === 'report') {
       buttonBusy(b, true, 'Generating…');
       try {
-        const res = await this.run('generateReport', { kind: r.kind, id: r.id });
-        $('#d-report').innerHTML = `<div class="alert ok">Saved to Drive: <a href="${esc(res.url)}" target="_blank" rel="noopener">${esc(res.name)}</a></div>`;
+        const inc = $('#d-incfin');
+        const res = await this.run('generateReport', { kind: r.kind, id: r.id, includeFinance: inc ? inc.checked : false });
+        $('#d-report').innerHTML = `<div class="alert ok">${res.withFinance ? '🔒 Saved to the Finance folder' : 'Saved to Drive'}: <a href="${esc(res.url)}" target="_blank" rel="noopener">${esc(res.name)}</a></div>`;
       } catch (err) { $('#d-report').innerHTML = `<div class="alert err">${esc(err.message)}</div>`; }
       finally { buttonBusy(b, false); }
     }
