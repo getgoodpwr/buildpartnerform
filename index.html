@@ -2137,7 +2137,7 @@ const Staff = {
       <dl class="kv"><dt>Answer</dt><dd>${esc(r.siteCapture.answer)}</dd>${r.siteCapture.user ? `<dt>Profile for</dt><dd>${esc(r.siteCapture.user)} · ${esc(r.siteCapture.userEmail)}${r.siteCapture.userPhone ? ' · ' + esc(r.siteCapture.userPhone) : ''}</dd>` : ''}${r.siteCapture.vendorId ? `<dt>Vendor ID</dt><dd>${esc(r.siteCapture.vendorId)}</dd>` : ''}${r.siteCapture.details ? `<dt>Details</dt><dd>${esc(r.siteCapture.details)}</dd>` : ''}${r.siteCapture.fulfilledBy ? `<dt>Fulfilled by</dt><dd>${esc(r.siteCapture.fulfilledBy)}</dd>` : ''}</dl>
       <div class="row" style="margin-top:10px"><select class="select" id="d-sc-status">${[r.siteCapture.status].concat(r.siteCapture.allowed.filter(s => s !== r.siteCapture.status)).map(s => `<option value="${esc(s)}">${esc(s === r.siteCapture.status ? s + ' (current)' : s)}</option>`).join('')}</select><button type="button" class="btn btn-ghost" data-act="sc-save">Update request</button></div></div>` : '';
     const f = r.canSeeFinance ? r.finance : null;
-    const fin = f ? `<div class="panel fin"><h3>ACH payments · Finance only 🔒</h3>${f.found ? `<dl class="kv">${[['Name on account', f.nameOnAccount], ['Bank', f.bankName], ['Bank address', f.bankAddress], ['Routing number', f.routing], ['Account number', f.account], ['Account type', f.accountType], ['ACH authorization', f.authorized ? 'Accepted' : 'Not accepted'], ['Authorized by', f.authorizedBy], ['Authorized at', f.authorizedAt], ['Verification', f.verification]].filter(x => x[1]).map(x => `<dt>${esc(x[0])}</dt><dd${/number/.test(x[0]) ? ' class="mono"' : ''}>${esc(x[1])}</dd>`).join('')}</dl><p style="margin:8px 0 0"><a href="${esc(f.sheetUrl)}" target="_blank" rel="noopener">Open in Finance workbook →</a></p>` : '<p class="sub">No bank details on file for this application.</p>'}<p class="sub" style="margin:8px 0 0;font-size:12.5px">Only people listed in FINANCE_EMAILS / ADMIN_EMAILS see this. Each view is logged.</p></div>` : '';
+    const fin = f ? `<div class="panel fin"><h3>ACH payments · Finance only 🔒</h3>${f.found ? `<dl class="kv">${[['Name on account', f.nameOnAccount], ['Bank', f.bankName], ['Bank address', f.bankAddress], ['Routing number', f.routing], ['Account number', f.account], ['Account type', f.accountType], ['ACH authorization', f.authorized ? 'Accepted' : 'Not accepted'], ['Authorized by', f.authorizedBy], ['Authorized at', f.authorizedAt], ['Verification', f.verification]].filter(x => x[1]).map(x => `<dt>${esc(x[0])}</dt><dd${/number/.test(x[0]) ? ' class="mono"' : ''}>${esc(x[1])}</dd>`).join('')}</dl><div class="row" style="margin-top:12px"><button type="button" class="btn btn-dark" data-act="fin-report">🖨 Print finance summary</button><a class="btn btn-ghost" href="${esc(f.sheetUrl)}" target="_blank" rel="noopener">Open in Finance workbook</a></div><div id="d-fin-report"></div>` : '<p class="sub">No bank details on file for this application.</p>'}<p class="sub" style="margin:8px 0 0;font-size:12.5px">Only people listed in FINANCE_EMAILS / ADMIN_EMAILS see this. Each view is logged. The finance PDF is saved in the locked Finance folder.</p></div>` : '';
     const docs = r.kind === 'onboarding' ? `<div class="panel"><h3>Documents (${r.documents.length})</h3>${r.documents.length ? '<ul class="docs">' + r.documents.map(d => `<li><span><b>${esc(d.category)}</b><small>${esc(d.name)}${d.size ? ' · ' + fmtBytes(d.size) : ''}</small></span>${d.restricted ? '<small>Being moved — run setupDatabase</small>' : d.url ? `<a href="${esc(d.url)}" target="_blank" rel="noopener">Open</a>` : ''}</li>`).join('') + '</ul>' : '<p class="sub">No documents.</p>'}${r.folderUrl ? `<p style="margin:10px 0 0"><a href="${esc(r.folderUrl)}" target="_blank" rel="noopener">Open documents folder in Drive →</a></p>` : ''}</div>` : '';
     $('#d-body').innerHTML = `${scNew ? sc : ''}
       <div class="panel"><h3>Review</h3>
@@ -2149,7 +2149,6 @@ const Staff = {
       </div>
       <div class="panel"><h3>Result</h3>
         <div class="row"><button type="button" class="btn btn-dark" data-act="report">Generate PDF summary</button><a class="btn btn-ghost" href="${esc(r.sheetUrl)}" target="_blank" rel="noopener">Open in database</a></div>
-        ${f && f.found ? '<label style="display:flex;gap:8px;align-items:center;margin-top:10px;font-size:14px"><input type="checkbox" id="d-incfin" checked> Include bank details (PDF is saved in the restricted Finance folder)</label>' : ''}
         <div id="d-report"></div>
       </div>
       ${scNew ? '' : sc}${fin}${docs}
@@ -2172,12 +2171,21 @@ const Staff = {
       try { await this.run('updateStatus', { kind: 'sitecapture', id: r.siteCapture.id, status: $('#d-sc-status').value }); toast('Site Capture request updated'); this.openRecord(r.kind, r.id); this.loadOverview(); this.loadList(); }
       catch (err) { toast(err.message); buttonBusy(b, false); }
     }
+    if (b.dataset.act === 'fin-report') {
+      buttonBusy(b, true, 'Generating…');
+      const w = window.open('', '_blank');
+      try {
+        const res = await this.run('generateFinanceReport', { id: r.id });
+        if (w) w.location.href = res.url;
+        $('#d-fin-report').innerHTML = `<div class="alert ok" style="margin-top:10px">🔒 Saved to the Finance folder: <a href="${esc(res.url)}" target="_blank" rel="noopener">${esc(res.name)}</a> — open it and press Print.</div>`;
+      } catch (err) { if (w) w.close(); $('#d-fin-report').innerHTML = `<div class="alert err" style="margin-top:10px">${esc(err.message)}</div>`; }
+      finally { buttonBusy(b, false); }
+    }
     if (b.dataset.act === 'report') {
       buttonBusy(b, true, 'Generating…');
       try {
-        const inc = $('#d-incfin');
-        const res = await this.run('generateReport', { kind: r.kind, id: r.id, includeFinance: inc ? inc.checked : false });
-        $('#d-report').innerHTML = `<div class="alert ok">${res.withFinance ? '🔒 Saved to the Finance folder' : 'Saved to Drive'}: <a href="${esc(res.url)}" target="_blank" rel="noopener">${esc(res.name)}</a></div>`;
+        const res = await this.run('generateReport', { kind: r.kind, id: r.id });
+        $('#d-report').innerHTML = `<div class="alert ok">Saved to Drive: <a href="${esc(res.url)}" target="_blank" rel="noopener">${esc(res.name)}</a></div>`;
       } catch (err) { $('#d-report').innerHTML = `<div class="alert err">${esc(err.message)}</div>`; }
       finally { buttonBusy(b, false); }
     }
