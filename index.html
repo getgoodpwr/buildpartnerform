@@ -153,6 +153,10 @@ main{max-width:1080px;margin:0 auto;padding:24px 16px 64px}
 .agree input{width:20px;height:20px;margin-top:2px;accent-color:var(--gold-ink);flex:none}
 .agree:has(input:checked){border-color:var(--gold);background:var(--gold-soft)}
 .field.has-err .agree{border-color:var(--err)}
+.bgc-doc{background:#fff;border:1px solid var(--line);border-radius:var(--radius-sm);padding:18px 20px;font-size:14px;line-height:1.55;color:var(--ink-2);max-height:420px;overflow:auto}
+.bgc-doc h4{margin:0 0 12px;text-align:center;font-size:16px;color:var(--ink)}
+.bgc-doc p{margin:0 0 10px}.bgc-doc ul,.bgc-doc ol{margin:0 0 10px;padding-left:24px}.bgc-doc li{margin-bottom:4px}
+.field[data-field="bgcSignature"] .input{font-family:'Brush Script MT','Segoe Script','Snell Roundhand',cursive;font-size:28px;color:#1f2a44;min-height:56px}
 .legal{background:#faf7f0;border:1px solid var(--line);border-radius:var(--radius-sm);padding:14px 16px;font-size:14.5px;color:var(--ink-2);white-space:pre-line}
 
 /* Progress */
@@ -568,6 +572,7 @@ dialog.drawer::backdrop{background:rgba(34,32,29,.45)}
         <div class="field" data-field="name"><label for="s-name">Client name <span class="req">*</span></label><input class="input" id="s-name" name="name" type="text" autocomplete="off" maxlength="120"><div class="err" id="s-name-err"></div></div>
         <div class="field" data-field="company"><label for="s-company">Company <span class="opt">Optional</span></label><input class="input" id="s-company" name="company" type="text" autocomplete="off" maxlength="160"><div class="err" id="s-company-err"></div></div>
         <div class="field" data-field="message"><label for="s-message">Personal note <span class="opt">Optional</span></label><textarea class="textarea" id="s-message" name="message" rows="3" maxlength="1000" placeholder="Shown in the email, e.g. “Great talking today — here’s the onboarding form.”"></textarea><div class="err" id="s-message-err"></div></div>
+        <label class="agree test-opt" style="margin:4px 0 10px;font-size:14px"><input type="checkbox" id="s-test"><span><b>Test only</b> — for trying the Onboarding form yourself. Nothing is saved to applications, finance or Site Capture, and no team emails go out. Files go to a “_Test submissions” folder.</span></label>
         <div id="s-send-alert" role="alert"></div>
         <button class="btn btn-primary" type="submit" id="s-send-btn" style="width:100%;margin-top:6px">Send invitation</button>
         <div id="s-sent" class="sent-box" aria-live="polite"></div>
@@ -632,8 +637,8 @@ const PREVIEW_CONFIG = {
   siteCaptureOptions: ['Already a Site Capture vendor','Need a Site Capture user profile','Neither / Not applicable','Unsure — please contact me'],
   workersCompOptions: ['Yes — we have employees','No — no employees','Exempt'],
   accountTypes: ['Checking','Savings','Other'],
-  uploads: { maxFileMb: 10, maxTotalMb: 60, allowedExtensions: ['pdf','jpg','jpeg','png'], minPhotos: 0,
-    categories: { install_photos:{label:'Photos of completed installations',max:15}, w9:{label:'Completed W-9',max:1}, licenses:{label:'Licenses & certifications',max:1}, insurance_gl:{label:'General liability insurance',max:1}, workers_comp:{label:"Workers' compensation",max:1}, other:{label:'Other supporting documents',max:10} } },
+  uploads: { maxFileMb: 50, maxTotalMb: 3000, photoMaxFileMb: 500, allowedExtensions: ['pdf','jpg','jpeg','png'], minPhotos: 3,
+    categories: { install_photos:{label:'Photos of three (3) completed installations &/or references',max:15}, w9:{label:'Completed W-9',max:1}, licenses:{label:'Licenses & certifications',max:1}, insurance_gl:{label:'General liability insurance',max:1}, workers_comp:{label:"Workers' compensation",max:1}, other:{label:'Other supporting documents',max:10} } },
   declarationVersion: 'preview',
   declarationText: 'I attest that all information provided on this form, including all uploaded documents, is accurate and complete. I understand that submitting this form does not by itself make my company an approved GoodPWR Build Partner, and that GoodPWR, LLC may verify the information and request additional documents.',
   achAuthorizationText: 'I hereby authorize GoodPWR, LLC to directly deposit owed funds into the account listed on this document and attest that all information provided on this form is accurate and complete.',
@@ -738,6 +743,26 @@ const Api = {
   }
 };
 
+/* Background Check Policy Acknowledgement — exact wording of the GoodPWR PDF (also stored in Code.gs for the signed PDF). */
+const BGC_DOC = [["h", "Background Check Policy Acknowledgement Acknowledgement and Consent"], ["p", "GOODPWR Solar is committed to maintaining the highest standards of professionalism, safety, compliance, and customer trust in connection with the marketing, sale, installation, and servicing of Sunrun products and services."], ["p", "Accordingly, all GOODPWR Solar Partners are required to ensure that any employee, independent contractor, subcontractor, sales representative, installation technician, service technician, or other personnel who market, sell, install, service, or otherwise interact with customers regarding Sunrun products successfully complete and maintain all required background screening and eligibility verification requirements prior to engaging in any related activities."], ["p", "The mandatory background screening requirements include, at a minimum, the following components:"], ["ul", ["Criminal history search", "Sex offender registry check", "Drug screening", "Right to work / employment eligibility verification", "Driving eligibility verification"]], ["p", "Partners are responsible for ensuring that all applicable personnel remain compliant with these requirements throughout the duration of their engagement on Sunrun-related activities. Documentation evidencing compliance must be maintained by the Partner and provided upon request."], ["p", "Failure to comply with these requirements may result in corrective action, including but not limited to suspension of project assignments, revocation of program participation, or termination of Partner eligibility to offer or support Sunrun products and services."], ["p", "For detailed information regarding applicable screening standards, compliance obligations, and related requirements, please refer to the Sunrun Policies"], ["p", "Thank you for your continued commitment to compliance, operational excellence, and customer protection."], ["p", "I acknowledge that, as a condition of participating in, supporting, selling, marketing, installing, servicing, or otherwise representing products and services offered through Sunrun and/or affiliated programs, I am required to comply with all applicable background check and workforce eligibility requirements established by Sunrun and applicable partner policies."], ["p", "I understand that the mandatory background screening requirements may include the following components:"], ["ul", ["Criminal history search", "Sex offender registry check", "Drug screening", "Right to work / employment eligibility verification", "Driving eligibility verification, where applicable to job responsibilities"]], ["p", "I acknowledge that completion of the required screening process, and continued compliance with applicable workforce standards, may be required prior to engaging in any sales, installation, customer interaction, field activity, or operational support involving Sunrun products or customers."], ["p", "I further acknowledge and agree that:"], ["ol", ["Any false, misleading, incomplete, or omitted information provided during the screening or onboarding process may result in denial, suspension, or termination of authorization to participate in affiliated programs or perform related work.", "Continued participation may be subject to periodic rescreening or updated compliance requirements as determined by Sunrun, its affiliates, partners, insurers, customers, or applicable law.", "Compliance with these requirements does not guarantee approval, continued engagement, employment, contractor status, or assignment eligibility.", "I am responsible for maintaining any required licenses, driving privileges, employment eligibility, and compliance qualifications applicable to my role.", "I understand that additional details regarding these requirements may be available through applicable partner compliance materials and the Sunrun Policies Page."]], ["p", "By signing below, I confirm that I have read, understand, and acknowledge the requirements outlined above."]];
+const bgcDocHtml = () => '<div class="bgc-doc" tabindex="0" aria-label="Background Check Policy document">' + BGC_DOC.map(b =>
+  b[0] === 'h' ? `<h4>${esc(b[1])}</h4>` : b[0] === 'ul' ? `<ul>${b[1].map(x => `<li>${esc(x)}</li>`).join('')}</ul>` :
+  b[0] === 'ol' ? `<ol>${b[1].map(x => `<li>${esc(x)}</li>`).join('')}</ol>` : `<p>${esc(b[1])}</p>`).join('') + '</div>';
+/* Turns a typed signature into a picture so it looks the same in the PDF on every computer. */
+function typedSigPng(text) {
+  try {
+    text = String(text || '').trim(); if (!text) return '';
+    const font = 'italic 64px "Brush Script MT","Segoe Script","Snell Roundhand","Lucida Handwriting",cursive';
+    const c = document.createElement('canvas'), ctx = c.getContext('2d');
+    ctx.font = font; const w = Math.min(1400, Math.ceil(ctx.measureText(text).width) + 40);
+    c.width = w; c.height = 110;
+    ctx.fillStyle = '#ffffff'; ctx.fillRect(0, 0, c.width, c.height);
+    ctx.font = font; ctx.fillStyle = '#1f2a44'; ctx.textBaseline = 'middle'; ctx.fillText(text, 20, 58);
+    return c.toDataURL('image/png');
+  } catch (e) { return ''; }
+}
+const todayIso = () => { const d = new Date(); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); };
+
 /* ---------- Field rendering (one spec drives markup, collection, validation, review) ---------- */
 let CFG = null;
 
@@ -765,6 +790,9 @@ function fieldHtml(f, prefix) {
       input = `<div class="input-group"><input class="input" type="password" ${common}${ph} inputmode="numeric" autocomplete="off" maxlength="${f.max || 20}" spellcheck="false"><button type="button" class="reveal" data-reveal="${id}" aria-label="Show ${esc(f.label)}">Show</button></div>`;
       break;
     }
+    case 'date':
+      input = `<input class="input" type="date" ${common} style="max-width:220px">`;
+      break;
     case 'int': case 'decimal':
       input = `<input class="input" type="text" inputmode="${f.type === 'int' ? 'numeric' : 'decimal'}" ${common}${ph} maxlength="12" style="max-width:220px">`;
       break;
@@ -988,7 +1016,10 @@ function prefillFromInvite(root, map) {
   const head = root.closest('.form-body');
   if (head && !$('.invite-strip', head)) {
     const d = document.createElement('div'); d.className = 'invite-strip';
-    d.innerHTML = `<span aria-hidden="true">✉</span><span>Personal invitation from GoodPWR${INVITE.company ? ' for <b>' + esc(INVITE.company) + '</b>' : ''}. Please don’t share this link.</span>`;
+    d.innerHTML = INVITE.test
+      ? `<span aria-hidden="true">🧪</span><span><b>TEST MODE</b> — this is a staff test. Nothing is saved to applications, and no team emails go out. Your files and the signed Background Check PDF go to the “_Test submissions” folder.</span>`
+      : `<span aria-hidden="true">✉</span><span>Personal invitation from GoodPWR${INVITE.company ? ' for <b>' + esc(INVITE.company) + '</b>' : ''}. Please don’t share this link.</span>`;
+    if (INVITE.test) d.style.cssText = 'background:#eef2ff;border-color:#c7d2fe;color:#312e81';
     head.insertBefore(d, head.firstChild);
   }
 }
@@ -1181,7 +1212,7 @@ const Onb = {
     S.push({ name: 'Documents', uploads: true, sections: [sec('Required documents', 'F', [
       { k: 'workersCompApplicable', label: 'Do you carry workers’ compensation?', type: 'radios', req: true, full: true, options: () => CFG.workersCompOptions }
     ], '', '<div id="o-uploads"></div>'), sec('', '', [
-      { k: 'references', label: 'References', type: 'textarea', max: 3000, rows: 3, full: true, placeholder: 'Company · contact name · phone or email — one per line', help: 'Optional — customers or companies we can contact about your work.' }
+      { k: 'references', label: 'References', type: 'textarea', max: 3000, rows: 3, full: true, placeholder: 'Company · contact name · phone or email — one per line', help: 'Customers or companies we can contact about your work. Required if you upload fewer than 3 installation photos / reference letters above.' }
     ])] });
     S.push({ name: 'ACH Payments', sections: [sec('Financial info for direct ACH payments', 'G', [
       { k: 'achAccountName', label: 'Name on account', type: 'text', req: true, max: 160, full: true, sensitive: true, autocomplete: 'off' },
@@ -1200,7 +1231,15 @@ const Onb = {
       { k: 'signerTitle', label: 'Your title', type: 'text', req: true, max: 120, autocomplete: 'organization-title' },
       { k: 'signerEmail', label: 'Your email', type: 'email', req: true, full: true, autocomplete: 'email' },
       { k: 'signature', type: 'html', full: true, html: () => Onb.sigHtml() }
-    ])] });
+    ]), sec('Background Check Policy Acknowledgement and Consent', 'I', [
+      { k: 'bgcDoc', type: 'html', full: true, html: () => bgcDocHtml() },
+      { k: 'bgcAccepted', label: 'I have read, understand, and acknowledge the Background Check Policy requirements outlined above.', type: 'bool', req: true, full: true },
+      { k: 'bgcPrintedName', label: 'Printed Name', type: 'text', req: true, max: 120, autocomplete: 'name' },
+      { k: 'bgcDate', label: 'Date', type: 'date', req: true },
+      { k: 'bgcSignature', label: 'Signature', type: 'text', req: true, max: 120, full: true, autocomplete: 'off', placeholder: 'Type your full name to sign',
+        help: 'Type your full name — it must match your printed name.',
+        check: (v, all) => String(v).toLowerCase().replace(/[^a-z0-9]/g, '') === String(all.bgcPrintedName || '').toLowerCase().replace(/[^a-z0-9]/g, '') ? '' : 'Your signature must match your printed name.' }
+    ], 'Required. Please read the document, then sign it below.')] });
     this.steps = S;
     this.allFields = [].concat(...S.map(s => [].concat(...s.sections.map(x => x.fields))));
   },
@@ -1230,6 +1269,10 @@ const Onb = {
 
     this.renderUploads();
     this.initSignature();
+    const bd = $('#o-bgcDate'); if (bd && !bd.value) bd.value = todayIso();
+    const bpn = $('#o-bgcPrintedName'), sn0 = $('[name="signerName"]');
+    if (bpn && sn0) sn0.addEventListener('input', () => { if (!bpn.dataset.edited) bpn.value = sn0.value; });
+    if (bpn) bpn.addEventListener('input', () => { bpn.dataset.edited = '1'; });
     let saveT;
     let firstRun = true;
     wireDynamic(root, this.allFields, vals => {
@@ -1263,7 +1306,7 @@ const Onb = {
         <li><span>Bank details for ACH<small>Routing &amp; account number</small></span></li>
         <li><span>Crew &amp; capacity numbers<small>Crews, electricians, installs/month</small></span></li>
       </ul>
-      <div class="limits" style="margin-top:14px">Accepted files: <b>${u.allowedExtensions.map(x => x.toUpperCase()).join(', ')}</b> · up to <b>${u.maxFileMb} MB</b> each · <b>${u.maxTotalMb} MB</b> total. Phone photos are optimized automatically, and files upload in the background while you keep filling in the form.</div>
+      <div class="limits" style="margin-top:14px">Accepted files: <b>${u.allowedExtensions.map(x => x.toUpperCase()).join(', ')}</b> · up to <b>${u.maxFileMb} MB</b> each (installation photos / references up to <b>${u.photoMaxFileMb || u.maxFileMb} MB</b>) · <b>${u.maxTotalMb} MB</b> total. Phone photos are optimized automatically, and files upload in the background while you keep filling in the form.</div>
       <div class="alert info" style="margin-bottom:0">Your progress is saved on this device for 7 days — you can close the page and come back using the same link (bank details are never saved, you’ll re-enter those).</div>
     </div>`;
   },
@@ -1336,7 +1379,7 @@ const Onb = {
       { cat: 'licenses', title: 'Licenses & certifications', desc: 'Any licenses/certifications required by the state and/or AHJ where work will be performed (NABCEP, electrical licenses, battery certifications, good standing certificate…).', req: true, max: c.licenses.max },
       { cat: 'insurance_gl', title: 'General liability insurance (COI)', desc: 'Current certificate of insurance for general liability.', req: true, max: c.insurance_gl.max },
       { cat: 'workers_comp', title: 'Workers’ compensation', desc: 'Current workers’ compensation certificate — or your exemption letter if you have no employees.', req: true, max: c.workers_comp.max },
-      { cat: 'install_photos', title: 'Photos of completed installations', desc: 'Optional — photos of a few installs you’ve completed.', req: false, max: c.install_photos.max, accept: 'image/jpeg,image/png,application/pdf' },
+      { cat: 'install_photos', title: 'Upload Photos of Three (3) Completed Installations &/or References', desc: `Photos of 3 installs you’ve completed and/or reference letters. Big files are fine — up to ${CFG.uploads.photoMaxFileMb || CFG.uploads.maxFileMb} MB each, uploaded in pieces in the background. No photos? List your references in the box below instead.`, req: (CFG.uploads.minPhotos || 0) > 0, max: c.install_photos.max, accept: 'image/jpeg,image/png,application/pdf' },
       { cat: 'other', title: 'Other supporting documents', desc: 'Anything else that supports your application (optional).', req: false, max: c.other.max }
     ];
   },
@@ -1344,7 +1387,7 @@ const Onb = {
   renderUploads() {
     const box = $('#o-uploads'); if (!box) return;
     const ext = CFG.uploads.allowedExtensions.map(x => '.' + x).join(',');
-    box.innerHTML = `<div class="limits">Accepted: <b>${CFG.uploads.allowedExtensions.map(x => x.toUpperCase()).join(', ')}</b> · max <b>${CFG.uploads.maxFileMb} MB</b> per file · <b>${CFG.uploads.maxTotalMb} MB</b> total. Files upload as soon as you add them.</div>
+    box.innerHTML = `<div class="limits">Accepted: <b>${CFG.uploads.allowedExtensions.map(x => x.toUpperCase()).join(', ')}</b> · max <b>${CFG.uploads.maxFileMb} MB</b> per file (installation photos / references: <b>${maxMbFor('install_photos')} MB</b>) · <b>${CFG.uploads.maxTotalMb} MB</b> total. Files upload as soon as you add them.</div>
       <div class="alert err" id="o-docs-general" hidden></div>
       <div class="alert info" id="o-upl-note" hidden></div>` +
       this.uploadDefs().map(d => `<div class="upl" data-upl="${d.cat}">
@@ -1383,7 +1426,7 @@ const Onb = {
       if (count >= def.max) { item.status = 'bad'; item.error = `Limit is ${def.max} file(s) here — remove one first.`; }
       else if (allowed.indexOf(ext) === -1) { item.status = 'bad'; item.error = 'Only ' + allowed.join(', ').toUpperCase() + ' files are accepted.'; }
       else if (file.size === 0) { item.status = 'bad'; item.error = 'This file is empty.'; }
-      else if (file.size > CFG.uploads.maxFileMb * 1048576 && !/^image\//.test(file.type)) { item.status = 'bad'; item.error = `Larger than ${CFG.uploads.maxFileMb} MB. Please compress or split it.`; }
+      else if (file.size > maxMbFor(cat) * 1048576 && !/^image\//.test(file.type)) { item.status = 'bad'; item.error = `Larger than ${maxMbFor(cat)} MB. Please compress or split it.`; }
       if (/^image\//.test(file.type)) { try { item.thumb = URL.createObjectURL(file); } catch (e) {} }
       this.uploads.push(item);
       if (item.status === 'queued') this.queue.push(item);
@@ -1417,10 +1460,10 @@ const Onb = {
       let file = item.file;
       if (/^image\/(jpeg|png)$/.test(file.type) && file.size > 900 * 1024) {
         item.stage = 'Optimizing photo…'; this.paintItem(item);
-        file = await shrinkImage(file);
+        try { file = await shrinkImage(file); } catch (e) { file = item.file; }   // very large photos: upload the original
         item.size = file.size; item.name = file.name;
       }
-      if (file.size > CFG.uploads.maxFileMb * 1048576) throw { message: `This file is larger than ${CFG.uploads.maxFileMb} MB. Please use a smaller file.` };
+      if (file.size > maxMbFor(item.category) * 1048576) throw { message: `This file is larger than ${maxMbFor(item.category)} MB. Please use a smaller file.` };
       const base = { sessionId: this.draft.sessionId, inviteToken: INVITE ? INVITE.token : '', category: item.category, fileName: file.name, mimeType: file.type, size: file.size };
       const progress = pct => { item.pct = pct; item.stage = 'Uploading'; this.paintItem(item); };
       const res = file.size <= SMALL_FILE
@@ -1491,8 +1534,8 @@ const Onb = {
     const ok = cat => this.uploads.filter(u => u.category === cat && (u.status === 'ok' || u.status === 'uploading' || u.status === 'queued')).length;
     const minP = CFG.uploads.minPhotos || 0;
     if (minP > 0 && ok('install_photos') < minP && String(vals.references || '').trim().length < 20) {
-      errs.docs_install_photos = `Upload at least ${minP} installation photos, or list references below.`;
-      if (!vals.references) errs.references = 'Add references if you have fewer than ' + minP + ' photos.';
+      errs.docs_install_photos = `Upload photos of ${minP} completed installations and/or reference letters, or list your references below.`;
+      if (!vals.references) errs.references = 'Add references if you have fewer than ' + minP + ' photos / reference letters.';
     }
     if (ok('w9') < 1) errs.docs_w9 = 'Please upload your completed W-9.';
     if (ok('licenses') < 1) errs.docs_licenses = 'Please upload your license or certification.';
@@ -1643,6 +1686,7 @@ const Onb = {
         uploads: this.uploads.filter(u => u.status === 'ok').map(u => ({ token: u.token, category: u.category })),
         signaturePng: this.sig.method === 'drawn' ? this.sig.dataUrl : '',
         typedSignature: this.sig.method === 'typed' ? $('#o-typedSignature').value.trim() : '',
+        bgcSignaturePng: typedSigPng(vals.bgcSignature),
         hp: $('[name=hp]', root).value, inviteToken: INVITE ? INVITE.token : '', elapsedMs: Date.now() - (this.draft.startedAt || Date.now()), clientVersion: CLIENT_VERSION
       }, { timeoutMs: 120000 }), 4, n => { btn.innerHTML = '<span class="spin" aria-hidden="true"></span>Weak connection — still trying (' + n + ')…'; });
       saved.del(this.key);
@@ -1651,6 +1695,11 @@ const Onb = {
       $$('input[type=password], [name=achAccountName], [name=bankName], [name=bankAddress]', root).forEach(i => { i.value = ''; });
       root.hidden = true; $('#o-progress').hidden = true;
       const done = $('#o-done'); done.hidden = false;
+      if (res.test) {
+        done.innerHTML = doneHtml('Test finished — nothing was saved', 'TEST', `<div class="alert ok">This was a test. No application was created and no emails went out.${res.testFolderUrl ? ` <a href="${esc(res.testFolderUrl)}" target="_blank" rel="noopener"><b>Open the test folder</b></a> to see your files and the signed Background Check PDF (GoodPWR sign-in needed).` : ''}</div>`);
+        $('.done', done).focus(); window.scrollTo({ top: 0, behavior: 'smooth' });
+        return;
+      }
       const extra = res.siteCaptureRequestId ? `<div class="alert ok">Your Site Capture request was logged as <b>${esc(res.siteCaptureRequestId)}</b>. Our team will follow up — no account is created automatically.</div>` : '';
       done.innerHTML = doneHtml('Onboarding submitted', res.referenceId, extra + `<p style="font-size:14px;color:var(--muted)">${res.documentsReceived} document(s) received.</p>`);
       $('.done', done).focus();
@@ -1676,6 +1725,7 @@ const Onb = {
 };
 
 /* ---------- File utilities ---------- */
+const maxMbFor = cat => cat === 'install_photos' ? (CFG.uploads.photoMaxFileMb || CFG.uploads.maxFileMb) : CFG.uploads.maxFileMb;
 const SMALL_FILE = 4 * 1024 * 1024;   // up to 4 MB: one request. Bigger: 4 MB pieces straight into Google Drive.
 const RETRYABLE = ['NETWORK', 'BAD_RESPONSE', 'BUSY', 'QUOTA', 'SERVER_ERROR', 'RATE_LIMITED'];
 const sleep = ms => new Promise(r => setTimeout(r, ms));
@@ -2044,10 +2094,10 @@ const Staff = {
         const kind = r['Form Type'] === 'Onboarding' ? 'onboarding' : 'prospect';
         return `<tr><td data-l="Client"><div><b>${esc(r['Client Name'])}</b><small>${esc(r['Client Email'])}${r['Company'] ? ' · ' + esc(r['Company']) : ''}</small></div></td>
           <td data-l="Form"><div>${esc(r['Form Type'])}</div></td>
-          <td data-l="Status"><div>${this.chip(r['Status'])}${r['Notification Status'] === 'Failed' || r['Notification Status'] === 'Gave Up' ? '<small style="color:var(--err)">Email failed</small>' : ''}</div></td>
+          <td data-l="Status"><div>${this.chip(r['Status'])}${String(r['Test']).toUpperCase() === 'TRUE' ? '<span class="flag" style="background:#6b7280">Test</span>' : ''}${r['Notification Status'] === 'Failed' || r['Notification Status'] === 'Gave Up' ? '<small style="color:var(--err)">Email failed</small>' : ''}</div></td>
           <td data-l="Sent"><div>${this.fmt(r['Created At'])}<small>${esc(String(r['Sent By'] || '').split('@')[0])}${Number(r['Send Count']) > 1 ? ' · sent ' + r['Send Count'] + '×' : ''}</small></div></td>
           <td data-l="Activity"><div>${esc(activity)}${!r['Completed At'] && r['Expires At'] ? '<small>Link valid until ' + this.fmt(r['Expires At']) + '</small>' : ''}</div></td>
-          <td class="acts">${r['Record ID'] ? `<button type="button" class="btn-link" data-open="${esc(kind)}|${esc(r['Record ID'])}">View ${esc(r['Record ID'])}</button>` : ''}
+          <td class="acts">${r['Test Folder URL'] ? `<a class="btn-link" href="${esc(r['Test Folder URL'])}" target="_blank" rel="noopener">Open test folder</a>` : r['Record ID'] && r['Record ID'] !== 'TEST' ? `<button type="button" class="btn-link" data-open="${esc(kind)}|${esc(r['Record ID'])}">View ${esc(r['Record ID'])}</button>` : ''}
             ${open ? `<button type="button" class="btn-link" data-resend="${esc(r['Invite ID'])}">Resend</button><button type="button" class="btn-link" data-revoke="${esc(r['Invite ID'])}">Cancel</button>` : ''}</td></tr>`;
       }).join('') + '</tbody></table>';
     }
@@ -2099,7 +2149,8 @@ const Staff = {
 
   async send(force) {
     const form = $('#s-send'), btn = $('#s-send-btn');
-    const vals = { formType: ($('input[name=formType]:checked', form) || {}).value || '', email: $('#s-email').value.trim(), name: $('#s-name').value.trim(), company: $('#s-company').value.trim(), message: $('#s-message').value.trim(), force: !!force };
+    const vals = { formType: ($('input[name=formType]:checked', form) || {}).value || '', email: $('#s-email').value.trim(), name: $('#s-name').value.trim(), company: $('#s-company').value.trim(), message: $('#s-message').value.trim(), force: !!force, test: !!($('#s-test') && $('#s-test').checked) };
+    if (vals.test && vals.formType !== 'onboarding') { $('#s-send-alert').innerHTML = '<div class="alert err">Test mode is for the Onboarding form only.</div>'; return; }
     const errs = {};
     if (!vals.formType) errs.formType = 'Choose a form.';
     if (!V.email(vals.email)) errs.email = 'Enter a valid email address.';
@@ -2114,7 +2165,7 @@ const Staff = {
         <div class="linkrow"><input class="input" readonly value="${esc(r.link)}" aria-label="Invitation link"><button class="btn btn-ghost" type="button" data-copy-link="${esc(r.link)}">Copy</button></div>
         <small style="display:block;margin-top:6px">This link is shown once. Use Resend later to send a fresh one.</small></div>`;
       $('[data-copy-link]', $('#s-sent')).addEventListener('click', async ev => { const ok = await copyText(ev.target.dataset.copyLink); toast(ok ? 'Link copied' : 'Select the link and copy it'); });
-      ['#s-email', '#s-name', '#s-company', '#s-message'].forEach(s => { $(s).value = ''; });
+      ['#s-email', '#s-name', '#s-company', '#s-message'].forEach(s => { $(s).value = ''; }); if ($('#s-test')) $('#s-test').checked = false;
       this.loadOverview(); if (this.tab === 'invites') { this.page = 1; this.loadList(); }
     } catch (err) {
       if (err.code === 'VALIDATION' && err.fields) showErrors(form, 's', err.fields, null);
