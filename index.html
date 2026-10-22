@@ -1127,7 +1127,7 @@ const Onb = {
   uploads: [],           // {id, category, name, size, status:'queued'|'uploading'|'ok'|'bad', token, error, thumb}
   queue: [],
   uploading: false,
-  sig: { method: 'drawn', hasInk: false, dataUrl: '' },
+  sig: { method: 'typed', hasInk: false, dataUrl: '' },
 
   defineSteps() {
     const sec = (title, tag, fields, note, after) => ({ title, tag, fields, note, after });
@@ -1507,19 +1507,20 @@ const Onb = {
   sigHtml() {
     return `<div class="field" data-field="signature">
       <div class="lbl" id="o-signature-lbl">Signature <span class="req" aria-hidden="true">*</span></div>
-      <div class="help">Draw with your finger or mouse, or type your name. This records your acknowledgement; it is not an identity-verified e-signature.</div>
+      <div class="help">Type your full name to sign — no drawing needed. Prefer to draw? Choose “Draw instead”. This records your acknowledgement; it is not an identity-verified e-signature.</div>
       <div class="sig-tabs" role="tablist" aria-label="Signature method">
-        <button type="button" role="tab" aria-selected="true" data-sigtab="drawn">Draw</button>
-        <button type="button" role="tab" aria-selected="false" data-sigtab="typed">Type</button>
+        <button type="button" role="tab" aria-selected="true" data-sigtab="typed">⌨️ Type my name</button>
+        <button type="button" role="tab" aria-selected="false" data-sigtab="drawn">✍️ Draw instead</button>
       </div>
-      <div data-sigpane="drawn">
+      <div data-sigpane="drawn" hidden>
         <div class="sig-pad"><canvas id="o-sig-canvas" aria-label="Signature drawing area"></canvas><span class="line"></span><span class="x">×</span><span class="hint" id="o-sig-hint">Sign here</span></div>
         <div style="margin-top:6px"><button type="button" class="btn-link" id="o-sig-clear">Clear signature</button></div>
       </div>
-      <div data-sigpane="typed" hidden>
+      <div data-sigpane="typed">
         <label class="sr-only" for="o-typedSignature">Type your full name</label>
         <input class="input" id="o-typedSignature" type="text" maxlength="120" placeholder="Type your full name" autocomplete="off">
         <div class="sig-typed" id="o-sig-preview" aria-hidden="true"></div>
+        <div class="help" style="margin-top:6px">Must match “Your full name” above. We fill it in for you — just check it.</div>
       </div>
       <div class="err" id="o-signature-err"></div>
     </div>`;
@@ -1547,7 +1548,13 @@ const Onb = {
       $$('[data-sigpane]').forEach(p => { p.hidden = p.dataset.sigpane !== this.sig.method; });
       if (this.sig.method === 'drawn') this.sizeCanvas(); else $('#o-typedSignature').focus();
     }));
-    $('#o-typedSignature').addEventListener('input', e => { $('#o-sig-preview').textContent = e.target.value; });
+    const ti = $('#o-typedSignature');
+    ti.addEventListener('input', e => { this.sig.typedEdited = true; $('#o-sig-preview').textContent = e.target.value; $('[data-field="signature"]').classList.remove('has-err'); });
+    const sn = $('[name="signerName"]');
+    const fill = () => { if (sn && (!this.sig.typedEdited || !ti.value.trim())) { ti.value = sn.value.trim(); $('#o-sig-preview').textContent = ti.value; } };
+    if (sn) sn.addEventListener('input', fill);
+    ti.addEventListener('focus', fill);
+    fill();
     window.addEventListener('resize', () => { if (!this.sig.hasInk) this.sizeCanvas(); });
   },
 
@@ -1568,8 +1575,10 @@ const Onb = {
   },
 
   sigError(vals) {
-    if (this.sig.method === 'drawn') return this.sig.hasInk && this.sig.dataUrl ? '' : 'Please draw your signature, or switch to Type.';
-    const t = $('#o-typedSignature').value.trim();
+    if (this.sig.method === 'drawn') return this.sig.hasInk && this.sig.dataUrl ? '' : 'Please draw your signature, or choose “Type my name”.';
+    const ti = $('#o-typedSignature');
+    if (!ti.value.trim() && !this.sig.typedEdited && vals.signerName) { ti.value = vals.signerName; $('#o-sig-preview').textContent = ti.value; }
+    const t = ti.value.trim();
     if (!t) return 'Please type your full name as your signature.';
     const norm = s => String(s || '').toLowerCase().replace(/[^a-z0-9]/g, '');
     if (vals.signerName && norm(t) !== norm(vals.signerName)) return 'Your typed signature must match your full name above.';
@@ -1593,7 +1602,7 @@ const Onb = {
       ${block('Documents', 5, this.uploadDefs().map(d => [d.title, docCount(d.cat) ? docCount(d.cat) + ' file(s)' : '—']).concat([['Workers’ comp', vals.workersCompApplicable], ['References', vals.references]]))}
       ${block('ACH payments', 6, [['Name on account', vals.achAccountName], ['Bank', vals.bankName], ['Account type', vals.accountType === 'Other' ? 'Other: ' + vals.accountTypeOther : vals.accountType], ['Routing number', mask(vals.routingNumber)], ['Account number', mask(vals.accountNumber)], ['ACH authorization', vals.achAuthorization ? 'Accepted' : 'Not accepted']])}
     </div>`;
-    const sn = $('[name="signerName"]'); if (sn && !sn.value && vals.primaryContact) sn.value = vals.primaryContact;
+    const sn = $('[name="signerName"]'); if (sn && !sn.value && vals.primaryContact) { sn.value = vals.primaryContact; sn.dispatchEvent(new Event('input', { bubbles: true })); }
     const st = $('[name="signerTitle"]'); if (st && !st.value && vals.primaryContactTitle) st.value = vals.primaryContactTitle;
     const se = $('[name="signerEmail"]'); if (se && !se.value && vals.primaryEmail) se.value = vals.primaryEmail;
   },
