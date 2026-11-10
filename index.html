@@ -146,6 +146,26 @@ main{max-width:1080px;margin:0 auto;padding:24px 16px 64px}
 .states .choice{padding:8px 10px;min-height:40px;font-size:14px}
 .states .choice b{font-weight:700;min-width:26px}
 .count-pill{font-size:12px;font-weight:700;background:var(--char);color:var(--bone);border-radius:999px;padding:2px 9px}
+/* Service area: states + markets */
+.section.area{background:linear-gradient(180deg,#fffaf0 0,#fff 140px);border:1px solid var(--line);border-radius:var(--radius);padding:20px 18px 6px;margin-top:22px}
+.section.area h2{margin-top:0}
+.mk-empty{display:flex;gap:10px;align-items:center;border:1.5px dashed #ddd5c3;border-radius:var(--radius-sm);padding:14px 16px;color:var(--muted);font-size:14.5px;background:var(--field)}
+.mk-list{display:grid;gap:10px}
+.mk{display:grid;grid-template-columns:auto 1fr;gap:12px;align-items:start;border:1.5px solid var(--line);border-left:4px solid var(--gold);border-radius:var(--radius-sm);background:#fff;padding:12px 14px;box-shadow:0 1px 2px rgba(34,32,29,.04)}
+.mk-st{display:flex;flex-direction:column;align-items:center;justify-content:center;min-width:64px;height:56px;border-radius:8px;background:var(--char);color:var(--bone);font-family:var(--head);line-height:1}
+.mk-st b{font-size:24px;letter-spacing:.04em}
+.mk-st small{font-size:10.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--gold-2);margin-top:3px;max-width:72px;text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mk-body label.mk-lbl{display:block;font-weight:600;font-size:14.5px;margin-bottom:6px}
+.mk-row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.mk-row .input{flex:1 1 240px}
+.mk-row .input:disabled{background:var(--gold-soft);color:var(--gold-ink);font-weight:600;opacity:1}
+.mk-all{display:inline-flex;gap:6px;align-items:center;font-size:14px;font-weight:600;white-space:nowrap;cursor:pointer;border:1.5px solid #ddd5c3;border-radius:999px;padding:7px 12px;background:var(--field)}
+.mk-all:has(input:checked){border-color:var(--gold);background:var(--gold-soft);color:var(--gold-ink)}
+.mk-all input{accent-color:var(--gold-ink);width:16px;height:16px;margin:0}
+.mk.mk-done{border-left-color:var(--ok)}
+.mk.mk-done .mk-lbl::after{content:' ✓';color:var(--ok);font-weight:800}
+.field.has-err .mk-list .mk:not(.mk-done){border-color:var(--err);border-left-color:var(--err)}
+@media (max-width:560px){.mk{grid-template-columns:1fr}.mk-st{flex-direction:row;gap:8px;height:auto;padding:8px 10px;justify-content:flex-start;min-width:0}.mk-st small{margin:0;max-width:none}}
 .conditional{border-left:3px solid var(--gold);background:#fffaf0;padding:2px 16px 6px;margin:6px 0 4px;border-radius:0 8px 8px 0}
 
 /* Bool / declaration */
@@ -893,6 +913,9 @@ function fieldHtml(f, prefix) {
         `<button type="button" class="btn-link zadd" data-zadd="${f.k}">+ Add another range</button>`;
       return `<div class="${cls}" data-field="${f.k}"${showIf}><div class="lbl" id="${id}-lbl">${esc(f.label)}${reqMark}</div>${help}${input}<div class="err" id="${id}-err"></div></div>`;
     }
+    case 'markets':
+      input = `<div class="mk-wrap" id="${id}" data-markets="${f.k}" data-states-key="${f.statesKey}" role="group" aria-labelledby="${id}-lbl" aria-describedby="${desc}"></div>`;
+      return `<div class="${cls}" data-field="${f.k}"${showIf}><div class="lbl" id="${id}-lbl">${esc(f.label)}${reqMark}</div>${help}${input}<div class="err" id="${id}-err"></div></div>`;
     case 'bool':
       return `<div class="${cls}" data-field="${f.k}"${showIf}>${f.legal ? `<div class="legal" style="margin-bottom:10px">${esc(f.legal())}</div>` : ''}<label class="agree"><input type="checkbox" ${common}><span>${f.label}${f.req ? ' <span class="req" aria-hidden="true">*</span>' : ''}</span></label><div class="err" id="${id}-err"></div></div>`;
     case 'html':
@@ -903,8 +926,48 @@ function fieldHtml(f, prefix) {
 }
 
 function renderSections(sections, prefix) {
-  return sections.map(s => `<div class="section"${s.id ? ` id="${s.id}"` : ''}>${s.title ? `<h2>${s.tag ? `<span class="tag">${s.tag}</span>` : ''}${esc(s.title)}</h2>` : ''}${s.note ? `<p class="sec-note">${s.note}</p>` : ''}<div class="grid">${s.fields.map(f => fieldHtml(f, prefix)).join('')}</div>${s.after || ''}</div>`).join('');
+  return sections.map(s => `<div class="section${s.cls ? ' ' + s.cls : ''}"${s.id ? ` id="${s.id}"` : ''}>${s.title ? `<h2>${s.tag ? `<span class="tag">${s.tag}</span>` : ''}${esc(s.title)}</h2>` : ''}${s.note ? `<p class="sec-note">${s.note}</p>` : ''}<div class="grid">${s.fields.map(f => fieldHtml(f, prefix)).join('')}</div>${s.after || ''}</div>`).join('');
 }
+
+/* ---------- Markets: one box per selected state ("*" = entire state) ---------- */
+const stateName = code => { const s = (CFG.states || []).find(x => x[0] === code); return s ? s[1] : code; };
+function readMarkets(root, k) {
+  const out = {};
+  $$(`[data-markets="${k}"] .mk`, root).forEach(row => {
+    const code = row.dataset.st, all = $('[data-mk-all]', row).checked, txt = $('[data-mk-text]', row).value.trim();
+    if (all) out[code] = '*'; else if (txt) out[code] = txt;
+  });
+  return out;
+}
+function syncMarkets(root, f) {
+  const box = $(`[data-markets="${f.k}"]`, root); if (!box) return;
+  const keep = Object.assign({}, box._saved || {}, readMarkets(root, f.k));
+  $$('.mk', box).forEach(row => { const code = row.dataset.st; if (!$('[data-mk-all]', row).checked && !$('[data-mk-text]', row).value.trim()) delete keep[code]; });
+  box._saved = keep;
+  const states = $$(`input[name="${f.statesKey}"]:checked`, root).map(i => i.value);
+  const shown = $$('.mk', box).map(r => r.dataset.st);
+  if (states.join() === shown.join() && box.dataset.ready) return;
+  box.dataset.ready = '1';
+  if (!states.length) { box.innerHTML = '<div class="mk-empty"><span aria-hidden="true" style="font-size:20px">📍</span><span>Choose your states above — a box for each state’s markets appears here.</span></div>'; return; }
+  box.innerHTML = '<div class="mk-list">' + states.map(code => {
+    const v = keep[code] || '', all = v === '*', nm = stateName(code);
+    return `<div class="mk${v ? ' mk-done' : ''}" data-st="${code}"><div class="mk-st" aria-hidden="true"><b>${code}</b><small>${esc(nm)}</small></div>
+      <div class="mk-body"><label class="mk-lbl" for="mk-${f.k}-${code}">Markets in ${esc(nm)}</label>
+      <div class="mk-row"><input class="input" type="text" id="mk-${f.k}-${code}" data-mk-text maxlength="400" placeholder="${all ? 'Covers all of ' + esc(nm) : 'e.g. cities, metro areas or counties'}" data-ph="e.g. cities, metro areas or counties" data-ph-all="Covers all of ${esc(nm)}" value="${all ? '' : esc(v)}"${all ? ' disabled' : ''}>
+      <label class="mk-all"><input type="checkbox" data-mk-all${all ? ' checked' : ''}> Entire state</label></div></div></div>`;
+  }).join('') + '</div>';
+}
+document.addEventListener('change', e => {
+  if (!e.target.matches('[data-mk-all]')) return;
+  const row = e.target.closest('.mk'), t = $('[data-mk-text]', row);
+  t.disabled = e.target.checked; t.placeholder = e.target.checked ? t.dataset.phAll : t.dataset.ph;
+  if (e.target.checked) t.value = ''; else t.focus();
+  row.classList.toggle('mk-done', e.target.checked || !!t.value.trim());
+}, true);
+document.addEventListener('input', e => {
+  if (e.target.matches('[data-mk-text]')) e.target.closest('.mk').classList.toggle('mk-done', !!e.target.value.trim());
+}, true);
+const fmtMarkets = m => Object.keys(m || {}).map(k => k + ': ' + (m[k] === '*' ? 'Entire state' : m[k])).join(' · ');
 
 /* ---------- ZIP code ranges (From – To rows; a blank "To" = one ZIP) ---------- */
 function zipRowHtml(k, from, to) {
@@ -955,6 +1018,7 @@ function readValues(root, fields) {
   fields.forEach(f => {
     if (f.type === 'html') return;
     if (f.type === 'zipranges') { out[f.k] = readZipRows(root, f.k); return; }
+    if (f.type === 'markets') { out[f.k] = readMarkets(root, f.k); return; }
     if (f.type === 'checks' || f.type === 'states') {
       out[f.k] = $$(`input[name="${f.k}"]:checked`, root).map(i => i.value);
       if (f.otherKey) { const o = $(`[name="${f.otherKey}"]`, root); out[f.otherKey] = o ? o.value.trim() : ''; }
@@ -976,6 +1040,7 @@ function writeValues(root, fields, vals) {
     if (f.sensitive || !(f.k in vals)) return;
     const v = vals[f.k];
     if (f.type === 'zipranges') { writeZipRows(root, f.k, v); return; }
+    if (f.type === 'markets') { const box = $(`[data-markets="${f.k}"]`, root); if (box) { box._saved = Object.assign({}, v || {}); box.dataset.ready = ''; box.innerHTML = ''; } return; }
     if (f.type === 'checks' || f.type === 'states' || f.type === 'radios') {
       const arr = Array.isArray(v) ? v : [v];
       $$(`input[name="${f.k}"]`, root).forEach(i => { i.checked = arr.indexOf(i.value) !== -1; });
@@ -996,6 +1061,11 @@ function validate(fields, vals) {
   fields.forEach(f => {
     if (f.type === 'html' || !isVisible(f, vals)) return;
     const v = vals[f.k];
+    if (f.type === 'markets') {
+      const miss = (vals[f.statesKey] || []).filter(st => !(v || {})[st]);
+      if (miss.length) errs[f.k] = 'Please add your markets for ' + miss.join(', ') + ' — or tick “Entire state”.';
+      return;
+    }
     const required = f.req || (f.reqIf && f.reqIf(vals));
     const empty = v === '' || v == null || (Array.isArray(v) && !v.length) || v === false;
     if (required && empty) {
@@ -1052,6 +1122,7 @@ function showErrors(root, prefix, errs, alertBox) {
 
 function wireDynamic(root, fields, onChange) {
   const refresh = () => {
+    fields.filter(f => f.type === 'markets').forEach(f => syncMarkets(root, f));
     const vals = readValues(root, fields);
     fields.forEach(f => {
       const wrap = $(`[data-field="${f.k}"]`, root);
@@ -1135,6 +1206,128 @@ function doneHtml(title, ref, extra) {
 /* =========================================================================
    FORM 1 — PROSPECTIVE BUILD PARTNERS
    ========================================================================= */
+/* Installation photos / references uploader for the Prospect form (no review needed; files go to the partner folder). */
+const PUp = {
+  items: [], queue: [], active: 0, _idle: null, form: null,
+  init(form) {
+    this.form = form;
+    this.items = ((form.draft && form.draft.uploads) || []).filter(u => u.status === 'ok');
+    const box = $('#p-uploads'); if (!box) return;
+    const max = (CFG.uploads.categories.install_photos || {}).max || 15, minP = CFG.uploads.minPhotos || 0;
+    box.innerHTML = `<div class="upl" data-upl="install_photos">
+        <div class="upl-head"><h3>Upload photos of three (3) completed installations &amp;/or references</h3><span class="badge ${minP ? 'req-b' : 'opt-b'}">${minP ? 'Required' : 'Optional'}</span></div>
+        <p class="desc">Photos of ${minP || 3} installs you’ve completed and/or reference letters (JPG, PNG or PDF). Big files are fine — up to ${maxMbFor('install_photos')} MB each, uploaded in the background. No photos? List your references below instead.</p>
+        <div class="drop" tabindex="0" role="button" aria-label="Add installation photos or references" data-pdrop><b>Drag photos here or tap to choose</b><span>Up to ${max} files</span></div>
+        <input type="file" hidden multiple accept="image/jpeg,image/png,application/pdf,.jpg,.jpeg,.png,.pdf" data-ppicker>
+        <ul class="files" data-plist></ul>
+        <div class="alert info" id="p-upl-note" hidden></div>
+        <div class="err" id="p-docs_install_photos-err"></div>
+      </div>`;
+    box.addEventListener('click', e => {
+      if (e.target.closest('[data-pdrop]')) $('[data-ppicker]', box).click();
+      const rm = e.target.closest('[data-premove]'); if (rm) this.remove(rm.dataset.premove);
+      const rt = e.target.closest('[data-pretry]'); if (rt) this.retry(rt.dataset.pretry);
+    });
+    box.addEventListener('keydown', e => { if (e.target.closest('[data-pdrop]') && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); $('[data-ppicker]', box).click(); } });
+    box.addEventListener('change', e => { const pk = e.target.closest('[data-ppicker]'); if (pk) { this.add(Array.from(pk.files)); pk.value = ''; } });
+    ['dragenter', 'dragover'].forEach(ev => box.addEventListener(ev, e => { const d = e.target.closest('[data-pdrop]'); if (d) { e.preventDefault(); d.classList.add('over'); } }));
+    ['dragleave', 'drop'].forEach(ev => box.addEventListener(ev, e => { const d = e.target.closest('[data-pdrop]'); if (d) { e.preventDefault(); d.classList.remove('over'); if (ev === 'drop') this.add(Array.from(e.dataTransfer.files || [])); } }));
+    window.addEventListener('beforeunload', e => { if (this.pending()) { e.preventDefault(); e.returnValue = ''; } });
+    this.paint();
+  },
+  max() { return (CFG.uploads.categories.install_photos || {}).max || 15; },
+  live() { return this.items.filter(u => u.status !== 'bad'); },
+  pending() { return this.items.some(u => u.status === 'uploading' || u.status === 'queued'); },
+  wait() { return this.pending() ? new Promise(r => { this._idle = r; }) : Promise.resolve(); },
+  save() {
+    const f = this.form; if (!f || !f.draft) return;
+    f.draft.uploads = this.items.filter(u => u.status === 'ok').map(u => ({ id: u.id, name: u.name, size: u.size, token: u.token, status: 'ok' }));
+    saved.set(f.key, f.draft);
+  },
+  add(files) {
+    const box = $('[data-upl="install_photos"]'); if (box) box.classList.remove('has-err');
+    files.forEach(file => {
+      const ext = (file.name.split('.').pop() || '').toLowerCase();
+      const item = { id: uuid(), name: file.name, size: file.size, status: 'queued', file };
+      if (this.live().length >= this.max()) { item.status = 'bad'; item.error = `Limit is ${this.max()} files — remove one first.`; }
+      else if (['pdf', 'jpg', 'jpeg', 'png'].indexOf(ext) === -1) { item.status = 'bad'; item.error = 'Only JPG, PNG or PDF files are accepted.'; }
+      else if (file.size === 0) { item.status = 'bad'; item.error = 'This file is empty.'; }
+      else if (file.size > maxMbFor('install_photos') * 1048576 && !/^image\//.test(file.type)) { item.status = 'bad'; item.error = `Larger than ${maxMbFor('install_photos')} MB. Please compress or split it.`; }
+      if (/^image\//.test(file.type)) { try { item.thumb = URL.createObjectURL(file); } catch (e) {} }
+      this.items.push(item);
+      if (item.status === 'queued') this.queue.push(item);
+    });
+    this.paint(); this.pump();
+  },
+  pump() {
+    while (this.active < 3 && this.queue.length) {
+      const item = this.queue.shift();
+      if (item.status !== 'queued') continue;
+      this.active++;
+      this.one(item).finally(() => {
+        this.active--; this.paint(); this.save(); this.pump();
+        if (!this.pending() && this._idle) { const r = this._idle; this._idle = null; r(); }
+      });
+    }
+  },
+  async one(item) {
+    item.status = 'uploading'; item.stage = 'Preparing…'; item.pct = 0; this.paint();
+    try {
+      let file = item.file;
+      if (/^image\/(jpeg|png)$/.test(file.type) && file.size > 900 * 1024) {
+        item.stage = 'Optimizing photo…'; this.paint();
+        try { file = await shrinkImage(file); } catch (e) { file = item.file; }
+        item.size = file.size; item.name = file.name;
+      }
+      if (file.size > maxMbFor('install_photos') * 1048576) throw { message: `This file is larger than ${maxMbFor('install_photos')} MB. Please use a smaller file.` };
+      const base = { sessionId: this.form.draft.submissionKey, form: 'prospect', inviteToken: INVITE ? INVITE.token : '', category: 'install_photos', fileName: file.name, mimeType: file.type, size: file.size };
+      const progress = pct => { item.pct = pct; item.stage = 'Uploading'; this.paint(); };
+      const res = file.size <= SMALL_FILE
+        ? await withRetry(async () => { item.stage = 'Uploading'; this.paint(); return Api.call('uploadFile', Object.assign({ dataBase64: await toBase64(file) }, base), { timeoutMs: 120000 }); })
+        : await uploadInPieces(file, base, progress);
+      item.status = 'ok'; item.token = res.uploadToken; item.name = res.fileName; item.size = res.size; item.file = null;
+    } catch (err) {
+      item.status = 'bad'; item.error = (err && err.message) || 'Upload failed.';
+      item.retryable = !err || RETRYABLE.indexOf(err.code) !== -1 || err.code === 'UPLOAD_EXPIRED';
+    }
+  },
+  retry(id) { const it = this.items.find(u => u.id === id); if (!it || !it.file) return; it.status = 'queued'; it.error = ''; this.queue.push(it); this.paint(); this.pump(); },
+  async remove(id) {
+    const it = this.items.find(u => u.id === id); if (!it || it.status === 'uploading') return;
+    this.items = this.items.filter(u => u.id !== id); this.queue = this.queue.filter(u => u.id !== id);
+    if (it.thumb) URL.revokeObjectURL(it.thumb);
+    this.paint(); this.save();
+    if (it.token) { try { await Api.call('discardUpload', { sessionId: this.form.draft.submissionKey, uploadToken: it.token }); } catch (e) { /* cleaned up later */ } }
+  },
+  paint() {
+    const list = $('[data-plist]'); if (!list) return;
+    const drop = $('[data-pdrop]'); if (drop) drop.hidden = this.live().length >= this.max();
+    list.innerHTML = this.items.map(u => {
+      const ext = (u.name.split('.').pop() || '').toUpperCase().slice(0, 4);
+      const ico = u.thumb && u.status !== 'bad' ? `<img src="${u.thumb}" alt="">` : esc(ext);
+      const state = u.status === 'ok' ? '✓ Uploaded · ' + fmtBytes(u.size) : u.status === 'bad' ? esc(u.error) : u.status === 'uploading' ? esc(u.stage === 'Uploading' ? (u.pct ? 'Uploading ' + u.pct + '%' : 'Uploading…') : (u.stage || 'Uploading…')) : 'Waiting…';
+      const bar = (u.status === 'uploading' || u.status === 'queued') ? `<div class="bar"><i${u.pct ? ` style="animation:none;margin-left:0;width:${u.pct}%"` : ''}></i></div>` : '';
+      const acts = (u.status === 'bad' && u.retryable && u.file ? `<button type="button" class="btn-link" data-pretry="${u.id}">Retry</button>` : '') +
+        (u.status !== 'uploading' ? `<button type="button" class="btn-link" data-premove="${u.id}" aria-label="Remove ${esc(u.name)}">Remove</button>` : '');
+      return `<li class="file ${u.status === 'ok' ? 'ok' : u.status === 'bad' ? 'bad' : ''}"><span class="ico">${ico}</span><span class="nm"><b>${esc(u.name)}</b><span class="st">${state}</span>${bar}</span><span class="acts">${acts}</span></li>`;
+    }).join('');
+    if (this.live().length >= (CFG.uploads.minPhotos || 0)) {   // enough files now: clear old “missing” errors
+      ['[data-upl="install_photos"]', '[data-field="references"]'].forEach(q => { const w = $(q); if (w && !this.items.some(u => u.status === 'bad')) { w.classList.remove('has-err'); const er = $('.err', w); if (er) er.textContent = ''; } });
+    }
+    const n = this.items.filter(u => u.status === 'uploading' || u.status === 'queued').length, note = $('#p-upl-note');
+    if (note) { note.hidden = !n; note.textContent = n ? `${n} file${n > 1 ? 's' : ''} still uploading — you can keep filling in the form.` : ''; }
+  },
+  errors(vals) {
+    const errs = {}, minP = CFG.uploads.minPhotos || 0;
+    const ok = this.items.filter(u => u.status === 'ok' || u.status === 'uploading' || u.status === 'queued').length;
+    if (this.items.some(u => u.status === 'bad')) errs.docs_install_photos = 'Remove or retry the files marked in red.';
+    else if (minP > 0 && ok < minP && String(vals.references || '').trim().length < 20) {
+      errs.docs_install_photos = `Upload photos of ${minP} completed installations and/or reference letters, or list your references below.`;
+      if (!vals.references) errs.references = `Add references if you have fewer than ${minP} photos / reference letters.`;
+    }
+    return errs;
+  }
+};
 const draftKey = base => base + (INVITE ? '_' + INVITE.token.slice(0, 12) : '');
 const Prospect = {
   key: 'gp_prospect_draft',
@@ -1155,14 +1348,17 @@ const Prospect = {
       { k: 'title', label: 'Title', type: 'text', max: 120, placeholder: 'e.g. Operations Manager', autocomplete: 'organization-title' },
       { k: 'phone', label: 'Phone number', type: 'tel', req: true, placeholder: '(555) 555-5555', autocomplete: 'tel' },
       { k: 'email', label: 'Email', type: 'email', req: true, placeholder: 'name@company.com', autocomplete: 'email' },
-      { k: 'notes', label: 'Notes', type: 'textarea', max: 3000, rows: 4, full: true, placeholder: 'Anything else we should know — crew size, specialties, availability…' }
+      { k: 'notes', label: 'Notes', type: 'textarea', max: 3000, rows: 4, full: true, placeholder: 'Anything else we should know — crew size, specialties, availability…' },
+      { k: 'photosBox', type: 'html', html: () => '<div id="p-uploads"></div>' },
+      { k: 'references', label: 'References', type: 'textarea', max: 3000, rows: 3, full: true, placeholder: 'Company · contact name · phone or email — one per line', help: `Customers or companies we can contact about your work. Required if you upload fewer than ${CFG.uploads.minPhotos || 3} photos / reference letters above.` }
     ];
     this.fields = F;
     return [
       { title: 'Company', fields: F.slice(0, 6) },
       { title: 'Services & coverage', fields: F.slice(6, 10) },
       { title: 'Point of contact', fields: F.slice(10, 14) },
-      { title: 'Notes', fields: F.slice(14) }
+      { title: 'Installation photos & references', fields: F.slice(15) },
+      { title: 'Notes', fields: F.slice(14, 15) }
     ];
   },
   init() {
@@ -1173,6 +1369,7 @@ const Prospect = {
     if (!draft || !draft.submissionKey) draft = { submissionKey: uuid(), startedAt: Date.now(), values: {} };
     this.draft = draft;
     writeValues(root, this.fields, draft.values);
+    PUp.init(this);
     prefillFromUrl(root, { company: 'company', contact: 'contact', name: 'contact', email: 'email', phone: 'phone' });
     prefillFromInvite(root, { clientName: 'contact', company: 'company', clientEmail: 'email' });
     let saveT;
@@ -1190,12 +1387,17 @@ const Prospect = {
     const root = $('#prospect-form'), btn = $('#p-submit'), alertBox = $('#p-alert');
     if (!CFG.acceptingProspects) { alertBox.innerHTML = '<div class="alert warn">This form is paused right now. Please email us instead.</div>'; return; }
     const vals = readValues(root, this.fields);
-    const errs = validate(this.fields, vals);
+    const errs = Object.assign(validate(this.fields, vals), PUp.errors(vals));
     if (showErrors(root, 'p', errs, alertBox)) return;
     this.busy = true; buttonBusy(btn, true, 'Submitting…'); alertBox.innerHTML = '';
     try {
+      if (PUp.pending()) { btn.innerHTML = '<span class="spin" aria-hidden="true"></span>Finishing photo uploads…'; await PUp.wait(); }
+      const bad = PUp.errors(vals);
+      if (Object.keys(bad).length) { showErrors(root, 'p', bad, alertBox); this.busy = false; buttonBusy(btn, false); return; }
+      btn.innerHTML = '<span class="spin" aria-hidden="true"></span>Submitting…';
       const res = await withRetry(() => Api.call('submitProspect', {
         submissionKey: this.draft.submissionKey, fields: vals, hp: $('[name=hp]', root).value, inviteToken: INVITE ? INVITE.token : '',
+        uploads: PUp.items.filter(u => u.status === 'ok').map(u => ({ token: u.token, category: 'install_photos' })),
         elapsedMs: Date.now() - (this.draft.startedAt || Date.now()), clientVersion: CLIENT_VERSION
       }));
       saved.del(this.key);
@@ -1715,12 +1917,14 @@ const Onb = {
       { k: 'businessPhone', label: 'Business phone number', type: 'tel', req: true, placeholder: '(555) 555-5555' },
       { k: 'website', label: 'Website', type: 'url', max: 300, placeholder: 'www.yourcompany.com' },
       { k: 'licenseNumbers', label: 'License number(s)', type: 'text', req: true, max: 300, help: 'Separate multiple licenses with commas.' },
-      { k: 'classification', label: 'Classification', type: 'text', req: true, max: 200, datalist: () => CFG.classifications, placeholder: 'e.g. Electrical Contractor' },
-      { k: 'statesServed', label: 'States served', type: 'states', req: true, full: true },
-      { k: 'serviceLocations', label: 'Service location(s)', type: 'text', max: 600, full: true, placeholder: 'e.g. St. Louis Metro, Columbia, Jefferson City', help: 'Cities, metro areas or counties — separate with commas.' },
+      { k: 'classification', label: 'Classification', type: 'text', req: true, max: 200, datalist: () => CFG.classifications, placeholder: 'e.g. Electrical Contractor' }
+    ]), Object.assign(sec('Service area — states & markets', '📍', [
+      { k: 'statesServed', label: 'Which states do you work in?', type: 'states', req: true, full: true, help: 'Tick every state you install or service in.' },
+      { k: 'markets', label: 'Your markets in each state', type: 'markets', statesKey: 'statesServed', req: true, full: true, help: 'For each state, list the markets you cover — cities, metro areas or counties. Cover the whole state? Tick “Entire state”.' },
+      { k: 'serviceLocations', label: 'Main service location(s)', type: 'text', max: 600, full: true, placeholder: 'e.g. St. Louis Metro, Columbia, Jefferson City', help: 'Where your crews are based — separate with commas.' },
       { k: 'zipRanges', label: 'ZIP code ranges', type: 'zipranges', req: true, full: true, help: 'The ZIP codes you cover, e.g. 63000 to 63399. One ZIP only? Leave “To” empty.' },
       { k: 'coverageZips', label: 'Other coverage details', type: 'textarea', max: 2000, rows: 2, full: true, placeholder: 'e.g. “180 miles from 63390”, counties, or areas you don’t serve' }
-    ])] });
+    ], 'Tell us where you work. This is how we match you with projects near you.'), { cls: 'area' })] });
     S.push({ name: 'Contact', sections: [sec('Primary contact', 'B', [
       { k: 'primaryContact', label: 'Primary contact / main POC', type: 'text', req: true, max: 120, autocomplete: 'name' },
       { k: 'primaryContactTitle', label: 'Primary contact title', type: 'text', req: true, max: 120, autocomplete: 'organization-title' },
@@ -1757,7 +1961,7 @@ const Onb = {
     S.push({ name: 'Documents', uploads: true, sections: [sec('Required documents', 'F', [
       { k: 'workersCompApplicable', label: 'Do you carry workers’ compensation?', type: 'radios', req: true, full: true, options: () => CFG.workersCompOptions }
     ], '', '<div id="o-uploads"></div>'), sec('', '', [
-      { k: 'references', label: 'References', type: 'textarea', max: 3000, rows: 3, full: true, placeholder: 'Company · contact name · phone or email — one per line', help: 'Customers or companies we can contact about your work. Required if you upload fewer than 3 installation photos / reference letters above.' }
+      { k: 'references', label: 'References', type: 'textarea', max: 3000, rows: 3, full: true, placeholder: 'Company · contact name · phone or email — one per line', help: 'Optional — customers or companies we can contact about your work.' }
     ])] });
     S.push({ name: 'ACH Payments', sections: [sec('Financial info for direct ACH payments', 'G', [
       { k: 'achAccountName', label: 'Name on account', type: 'text', req: true, max: 160, full: true, sensitive: true, autocomplete: 'off' },
@@ -1946,7 +2150,6 @@ const Onb = {
       { cat: 'licenses', title: 'Licenses & certifications', desc: 'Any licenses/certifications required by the state and/or AHJ where work will be performed (NABCEP, electrical licenses, battery certifications, good standing certificate…).', req: true, max: c.licenses.max },
       { cat: 'insurance_gl', title: 'General liability insurance (COI)', desc: 'Current certificate of insurance for general liability. It must meet the requirements below.', req: true, max: c.insurance_gl.max, extra: coiReqHtml },
       { cat: 'workers_comp', title: 'Workers’ compensation', desc: 'Current workers’ compensation certificate — or your exemption letter if you have no employees.', req: true, max: c.workers_comp.max },
-      { cat: 'install_photos', title: 'Upload Photos of Three (3) Completed Installations &/or References', desc: `Photos of 3 installs you’ve completed and/or reference letters. Big files are fine — up to ${CFG.uploads.photoMaxFileMb || CFG.uploads.maxFileMb} MB each, uploaded in pieces in the background. No photos? List your references in the box below instead.`, req: (CFG.uploads.minPhotos || 0) > 0, max: c.install_photos.max, accept: 'image/jpeg,image/png,application/pdf' },
       { cat: 'other', title: 'Other supporting documents', desc: 'Anything else that supports your application (optional).', req: false, max: c.other.max }
     ];
   },
@@ -1954,7 +2157,7 @@ const Onb = {
   renderUploads() {
     const box = $('#o-uploads'); if (!box) return;
     const ext = CFG.uploads.allowedExtensions.map(x => '.' + x).join(',');
-    box.innerHTML = `<div class="limits">Accepted: <b>${CFG.uploads.allowedExtensions.map(x => x.toUpperCase()).join(', ')}</b> · max <b>${CFG.uploads.maxFileMb} MB</b> per file (installation photos / references: <b>${maxMbFor('install_photos')} MB</b>) · <b>${CFG.uploads.maxTotalMb} MB</b> total. Files upload as soon as you add them.</div>
+    box.innerHTML = `<div class="limits">Accepted: <b>${CFG.uploads.allowedExtensions.map(x => x.toUpperCase()).join(', ')}</b> · max <b>${CFG.uploads.maxFileMb} MB</b> per file · <b>${CFG.uploads.maxTotalMb} MB</b> total. Files upload as soon as you add them.</div>
       <div class="alert err" id="o-docs-general" hidden></div>
       <div class="alert info" id="o-upl-note" hidden></div>` +
       this.uploadDefs().map(d => `<div class="upl" data-upl="${d.cat}">
@@ -2101,11 +2304,6 @@ const Onb = {
     const errs = {};
     // Files still uploading count as provided; submit waits for them to finish.
     const ok = cat => this.uploads.filter(u => u.category === cat && (u.status === 'ok' || u.status === 'uploading' || u.status === 'queued')).length;
-    const minP = CFG.uploads.minPhotos || 0;
-    if (minP > 0 && ok('install_photos') < minP && String(vals.references || '').trim().length < 20) {
-      errs.docs_install_photos = `Upload photos of ${minP} completed installations and/or reference letters, or list your references below.`;
-      if (!vals.references) errs.references = 'Add references if you have fewer than ' + minP + ' photos / reference letters.';
-    }
     if (W9.mode === 'online' && W9.pending()) errs.docs_w9 = W9.built ? 'You changed your W-9 answers — click “Create my W-9” again.' : 'Fill out the W-9 and click “Create my W-9”.';
     else if (ok('w9') < 1) errs.docs_w9 = 'Please upload your completed W-9.';
     if (ok('licenses') < 1) errs.docs_licenses = 'Please upload your license or certification.';
@@ -2208,7 +2406,7 @@ const Onb = {
     const services = (vals.services || []).filter(s => s !== 'Other').concat(vals.otherServices ? ['Other: ' + vals.otherServices] : []);
     const sysExp = (vals.systemExperience || []).concat(vals.systemExperienceOther ? [vals.systemExperienceOther] : []);
     $('#o-review').innerHTML = `<div class="section"><h2>Review your answers</h2><p class="sec-note">Check everything, then sign below. Use “Edit” to change a section.</p>
-      ${block('Business', 1, [['Business name', vals.businessName], ['Address', vals.businessAddress], ['Phone', vals.businessPhone], ['Website', vals.website], ['License number(s)', vals.licenseNumbers], ['Classification', vals.classification], ['States served', vals.statesServed], ['Service location(s)', vals.serviceLocations], ['ZIP code ranges', fmtZipRanges(vals.zipRanges)], ['Other coverage', vals.coverageZips]])}
+      ${block('Business', 1, [['Business name', vals.businessName], ['Address', vals.businessAddress], ['Phone', vals.businessPhone], ['Website', vals.website], ['License number(s)', vals.licenseNumbers], ['Classification', vals.classification], ['States served', vals.statesServed], ['Markets', fmtMarkets(vals.markets)], ['Service location(s)', vals.serviceLocations], ['ZIP code ranges', fmtZipRanges(vals.zipRanges)], ['Other coverage', vals.coverageZips]])}
       ${block('Primary contact', 2, [['Name', vals.primaryContact], ['Title', vals.primaryContactTitle], ['Phone', vals.primaryContactPhone], ['Alt. phone', vals.altPhone], ['Email', vals.primaryEmail]])}
       ${block('Services & capacity', 3, [['Services', services], ['Years in business', vals.yearsInBusiness], ['Years in solar', vals.yearsInSolar], ['System experience', sysExp], ['Crews', vals.numCrews], ['Electricians', vals.numElectricians], ['Service techs', vals.numServiceTechs], ['Installs / month', vals.installsPerMonth], ['Avg. system size (kW)', vals.avgSystemSizeKw], ['Coverage radius (mi)', vals.coverageRadiusMiles]])}
       ${block('Site Capture', 4, [['Answer', vals.siteCaptureStatus], ['Profile for', vals.scUserName], ['Their email', vals.scUserEmail], ['Vendor ID', vals.scVendorId]])}
@@ -2863,7 +3061,10 @@ const Staff = {
       <div class="row" style="margin-top:10px"><select class="select" id="d-sc-status">${[r.siteCapture.status].concat(r.siteCapture.allowed.filter(s => s !== r.siteCapture.status)).map(s => `<option value="${esc(s)}">${esc(s === r.siteCapture.status ? s + ' (current)' : s)}</option>`).join('')}</select><button type="button" class="btn btn-ghost" data-act="sc-save">Update request</button></div></div>` : '';
     const f = r.canSeeFinance ? r.finance : null;
     const fin = f ? `<div class="panel fin"><h3>ACH payments · Finance only 🔒</h3>${f.found ? `<dl class="kv">${[['Name on account', f.nameOnAccount], ['Bank', f.bankName], ['Bank address', f.bankAddress], ['Routing number', f.routing], ['Account number', f.account], ['Account type', f.accountType], ['ACH authorization', f.authorized ? 'Accepted' : 'Not accepted'], ['Authorized by', f.authorizedBy], ['Authorized at', f.authorizedAt], ['Verification', f.verification]].filter(x => x[1]).map(x => `<dt>${esc(x[0])}</dt><dd${/number/.test(x[0]) ? ' class="mono"' : ''}>${esc(x[1])}</dd>`).join('')}</dl><div class="row" style="margin-top:12px"><button type="button" class="btn btn-dark" data-act="fin-report">🖨 Print finance summary</button><a class="btn btn-ghost" href="${esc(f.sheetUrl)}" target="_blank" rel="noopener">Open in Finance workbook</a></div><div id="d-fin-report"></div>` : '<p class="sub">No bank details on file for this application.</p>'}<p class="sub" style="margin:8px 0 0;font-size:12.5px">Only people listed in FINANCE_EMAILS / ADMIN_EMAILS see this. Each view is logged. The finance PDF is saved in the locked Finance folder.</p></div>` : '';
-    const docs = r.kind === 'onboarding' ? this.renderDocs(r) : '';
+    const pp = r.prospectPhotos;
+    const ppHtml = pp && pp.id ? `<div class="panel"><h3>Installation photos &amp; references</h3><p class="sub" style="margin:0">Sent with the Prospective Build Partners form (<b>${esc(pp.id)}</b>)${pp.count ? ' · ' + pp.count + ' file(s)' : ' · no files, see references'}. No review needed.</p>${pp.folderUrl ? `<p style="margin:8px 0 0"><a href="${esc(pp.folderUrl)}" target="_blank" rel="noopener">Open photos folder →</a> · <button type="button" class="btn-link" data-open="prospect|${esc(pp.id)}">View prospect record</button></p>` : `<p style="margin:8px 0 0"><button type="button" class="btn-link" data-open="prospect|${esc(pp.id)}">View prospect record</button></p>`}</div>` : '';
+    const docs = r.kind === 'onboarding' ? ppHtml + this.renderDocs(r)
+      : (r.documents && r.documents.length ? this.renderDocs(r).replace(/<h3>Documents \((\d+)\)<\/h3>/, '<h3>Installation photos &amp; references ($1)</h3><p class="sub" style="margin:0 0 8px">View only — no review or approval needed. Saved in the partner’s folder.</p>') : '');
     $('#d-body').innerHTML = `${scNew ? sc : ''}
       <div class="panel"><h3>Review</h3>
         <div class="row"><select class="select" id="d-status" aria-label="Status">${opts}</select><button type="button" class="btn btn-primary" data-act="save">Save status</button></div>
@@ -2903,6 +3104,8 @@ const Staff = {
   },
 
   async onDrawerClick(e) {
+    const op = e.target.closest('#d-body [data-open]');
+    if (op) { const [k, id] = op.dataset.open.split('|'); this.openRecord(k, id); return; }
     const b = e.target.closest('[data-act]'); if (!b || !this.current) return;
     const r = this.current;
     if (b.dataset.act === 'save') {
