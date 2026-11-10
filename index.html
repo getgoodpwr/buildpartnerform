@@ -163,6 +163,9 @@ main{max-width:1080px;margin:0 auto;padding:24px 16px 64px}
 .mk-all:has(input:checked){border-color:var(--gold);background:var(--gold-soft);color:var(--gold-ink)}
 .mk-all input{accent-color:var(--gold-ink);width:16px;height:16px;margin:0}
 .mk.mk-done{border-left-color:var(--ok)}
+.mk-cell{display:flex;flex-direction:column;gap:3px;align-items:flex-start;max-width:230px}
+.mk-chip{font-size:12.5px;line-height:1.35;background:var(--gold-soft);border:1px solid #efd9a8;border-radius:6px;padding:1px 7px;color:var(--ink-2)}
+.mk-chip b{color:var(--gold-ink)}
 .mk.mk-done .mk-lbl::after{content:' ✓';color:var(--ok);font-weight:800}
 .field.has-err .mk-list .mk:not(.mk-done){border-color:var(--err);border-left-color:var(--err)}
 @media (max-width:560px){.mk{grid-template-columns:1fr}.mk-st{flex-direction:row;gap:8px;height:auto;padding:8px 10px;justify-content:flex-start;min-width:0}.mk-st small{margin:0;max-width:none}}
@@ -2911,9 +2914,10 @@ const Staff = {
           <td data-l="Status"><div>${this.chip(r['Status'])}${r['Possible Duplicate Of'] ? '<small>Possible duplicate</small>' : ''}</div></td>
           <td data-l="Submitted"><div>${this.fmt(r['Created At'])}</div></td></tr>`).join('') + '</tbody></table>';
     }
-    return `<table class="tbl"><thead><tr><th>Reference</th><th>Business</th><th>Site Capture</th><th>Docs</th><th>Status</th><th>Submitted</th></tr></thead><tbody>` + rows.map(r =>
+    return `<table class="tbl"><thead><tr><th>Reference</th><th>Business</th><th>States &amp; markets</th><th>Site Capture</th><th>Docs</th><th>Status</th><th>Submitted</th></tr></thead><tbody>` + rows.map(r =>
       `<tr class="click${r['SC Request Status'] === 'New' ? ' needs' : ''}" tabindex="0" data-open="onboarding|${esc(r['Record ID'])}"><td data-l="Reference" class="mono"><div>${esc(r['Record ID'])}</div></td>
         <td data-l="Business"><div><b>${esc(r['Business Name'])}</b><small>${esc(r['Primary Contact'])} · ${esc(r['Primary Email'])}</small></div></td>
+        <td data-l="States &amp; markets"><div class="mk-cell">${this.marketsCell(r)}</div></td>
         <td data-l="Site Capture"><div>${esc(String(r['Site Capture Status'] || '').replace(' — please contact me', ''))}${r['SC Request Status'] === 'New' ? '<span class="flag">Needs profile</span>' : r['SC Request Status'] ? '<small>Request: ' + esc(r['SC Request Status']) + '</small>' : ''}</div></td>
         <td data-l="Docs"><div>${esc(r['Document Count'])}${r['Last Error Code'] ? '<small style="color:var(--err)">' + esc(r['Last Error Code']) + '</small>' : ''}</div></td>
         <td data-l="Status"><div>${this.chip(r['Status'])}</div></td>
@@ -3079,6 +3083,16 @@ const Staff = {
       </div>
       ${scNew ? '' : sc}${fin}${docs}${r.kind === 'onboarding' ? this.renderAgreement(r) : ''}
       ${r.sections.map(s => `<div class="panel"><h3>${esc(s.title)}</h3><dl class="kv">${s.rows.map(x => `<dt>${esc(x[0])}</dt><dd>${esc(x[1])}</dd>`).join('')}</dl></div>`).join('')}`;
+  },
+
+  /* "IL: Chicago, Peoria; MO: Entire state" → state chips with their markets underneath. Older records show states only. */
+  marketsCell(r) {
+    const m = {};
+    String(r['Markets'] || '').split(';').forEach(x => { const i = x.indexOf(':'); if (i > 0) m[x.slice(0, i).trim()] = x.slice(i + 1).trim(); });
+    const states = String(r['States Served'] || '').split(/[,;]\s*/).map(x => x.trim()).filter(Boolean);
+    if (!states.length) return '<small>—</small>';
+    const shown = states.slice(0, 4).map(st => `<span class="mk-chip"><b>${esc(st)}</b>${m[st] ? ' ' + esc(m[st]) : ''}</span>`).join('');
+    return shown + (states.length > 4 ? `<small>+${states.length - 4} more</small>` : '') + (r['Markets'] ? '' : '<small>No markets given (older form)</small>');
   },
 
   renderDocs(r) {
