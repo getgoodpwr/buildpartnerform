@@ -257,6 +257,9 @@ div.alert.err{display:block;background:var(--err-soft);border-color:#f3c3be;colo
 .sr dt{color:var(--muted)}.sr dd{margin:0;font-weight:600}
 .sr .sr-x{grid-column:1/-1;font-size:13.5px;color:var(--ink-2);margin-top:4px}
 .sr.sr-hot{border-color:#e0902a;background:#fff8ec}
+.sr .sr-upl{grid-column:1/-1;margin:6px 0 0;padding:0;border:0;background:none}
+.sr .sr-upl .drop{padding:12px;background:#fff}
+.sr .sr-upl .files{margin-top:6px}
 @media (max-width:560px){.coi-must{grid-template-columns:1fr}.sr{grid-template-columns:1fr}}
 .drop{border:2px dashed #d3c8b0;border-radius:10px;padding:18px;text-align:center;background:#fff;cursor:pointer;transition:background .15s,border-color .15s}
 .drop:hover,.drop.over{background:var(--gold-soft);border-color:var(--gold)}
@@ -1819,14 +1822,24 @@ const STATE_REQS = {
   UT: ['2', 'DOPL General', 'DOPL Electrical', 'None', 'Salt Lake City extras'],
   VA: ['2', 'DPOR Class A/B/C (by project size)', 'State Electrical', 'None', '']
 };
+function stateUplHtml(st) {
+  const cat = 'lic_' + st.toLowerCase(), nm = stateName(st);
+  return `<div class="upl sr-upl" data-upl="${cat}">
+      <div class="drop" tabindex="0" role="button" aria-label="Add ${esc(nm)} licenses" data-drop="${cat}"><b>Upload your ${esc(nm)} license(s)</b><span>Required · up to 10 files</span></div>
+      <input type="file" hidden multiple accept=".pdf,.jpg,.jpeg,.png,image/jpeg,image/png,application/pdf" data-picker="${cat}">
+      <ul class="files" data-list="${cat}"></ul>
+      <div class="err" id="o-docs_${cat}-err"></div>
+    </div>`;
+}
 function stateReqsHtml(states) {
   if (!states.length) return '<p class="sub" style="margin:6px 0 0">Choose your states on the Business step to see what each one requires.</p>';
   return '<div class="sr-list">' + states.map(st => {
     const r = STATE_REQS[st];
-    if (!r) return `<div class="sr"><div class="mk-st" aria-hidden="true"><b>${esc(st)}</b><small>${esc(stateName(st))}</small></div><div class="sr-x" style="grid-column:auto">Upload your active contractor and electrical licenses for ${esc(stateName(st))}, plus any city or county licenses.</div></div>`;
-    return `<div class="sr${st === 'NV' || st === 'IL' ? ' sr-hot' : ''}"><div class="mk-st" aria-hidden="true"><b>${esc(st)}</b><small>${esc(stateName(st))}</small></div>
+    const head = `<div class="mk-st" aria-hidden="true"><b>${esc(st)}</b><small>${esc(stateName(st))}</small></div>`;
+    if (!r) return `<div class="sr">${head}<div class="sr-x" style="grid-column:auto;margin:0">Your active contractor and electrical licenses for ${esc(stateName(st))}, plus any city or county licenses.</div>${stateUplHtml(st)}</div>`;
+    return `<div class="sr${st === 'NV' || st === 'IL' ? ' sr-hot' : ''}">${head}
       <dl><dt>GC / HIC license</dt><dd>${esc(r[1])}</dd><dt>Electrical license</dt><dd>${esc(r[2])}</dd>${r[3] !== 'None' ? `<dt>Bond</dt><dd>${esc(r[3])}</dd>` : ''}</dl>
-      ${r[4] ? `<div class="sr-x"><b>Also required:</b> ${esc(r[4])}</div>` : ''}</div>`;
+      ${r[4] ? `<div class="sr-x"><b>Also required:</b> ${esc(r[4])}</div>` : ''}${stateUplHtml(st)}</div>`;
   }).join('') + '</div>';
 }
 
@@ -2257,9 +2270,10 @@ const Onb = {
   uploadDefs() {
     const c = CFG.uploads.categories;
     const lrReq = () => CFG.uploads.requireLightReach !== false;
-    return [
+    const stateDefs = (this._states || []).map(st => ({ cat: 'lic_' + st.toLowerCase(), stateCard: true, title: 'State licenses – ' + stateName(st), req: true, max: 10 }));
+    return stateDefs.concat([
       { cat: 'w9', title: 'Completed W-9', desc: 'Signed IRS Form W-9 for the business.', req: true, max: c.w9.max },
-      { cat: 'licenses', title: 'Licenses & certifications', desc: 'Active contractor and electrical licenses for every state you’ll build in (see the list above), plus city or county licenses, bonds and certifications (NABCEP, battery, good standing…). You can add several files.', req: true, max: (c.licenses && c.licenses.max) || 10 },
+      { cat: 'licenses', title: 'Other licenses & certifications', desc: 'Optional — city or county licenses, bonds and certifications (NABCEP, battery, certificate of good standing…). State licenses go in the state boxes above.', req: false, max: (c.licenses && c.licenses.max) || 10 },
       { cat: 'insurance_gl', set: 'gp', title: 'General liability COI', desc: 'Certificate holder: GoodPWR Solar LLC. Must include the additional insured language above.', req: true, max: 1 },
       { cat: 'workers_comp', set: 'gp', combo: true, title: 'Workers’ compensation COI', desc: 'Certificate holder: GoodPWR Solar LLC — or your exemption affidavit if you truly have no employees (last resort).', req: true, max: 1 },
       { cat: 'umbrella_gp', set: 'gp', combo: true, title: 'Umbrella / excess liability COI', desc: '$1M per occurrence. Certificate holder: GoodPWR Solar LLC.', req: true, max: 1 },
@@ -2269,7 +2283,7 @@ const Onb = {
       { cat: 'lr_umbrella', set: 'lr', combo: true, title: 'Umbrella / excess liability COI', desc: '$1M per occurrence. Certificate holder: LightReach.', req: lrReq(), max: 1 },
       { cat: 'osha_cards', nv: true, title: 'OSHA 10 / OSHA 30 cards — Nevada', desc: 'Nevada law: every construction worker needs an OSHA 10 Construction card within 15 days of hire, and supervisors need OSHA 30. Upload copies for your Nevada crews.', req: true, max: 20 },
       { cat: 'other', title: 'Other supporting documents', desc: 'Anything else that supports your application (optional).', req: false, max: c.other.max }
-    ];
+    ]);
   },
 
   renderUploads() {
@@ -2278,8 +2292,8 @@ const Onb = {
     box.innerHTML = `<div class="limits">Accepted: <b>${CFG.uploads.allowedExtensions.map(x => x.toUpperCase()).join(', ')}</b> · max <b>${CFG.uploads.maxFileMb} MB</b> per file · <b>${CFG.uploads.maxTotalMb} MB</b> total. Files upload as soon as you add them.</div>
       <div class="alert err" id="o-docs-general" hidden></div>
       <div class="alert info" id="o-upl-note" hidden></div>
-      <div class="state-reqs"><h3>📍 What your states require</h3><p class="sub" style="margin:0">Collect licenses for every state you build in — one set per state. Cities and counties may also need their own license.</p><div id="o-state-reqs"></div></div>` +
-      this.uploadDefs().map((d, i, all) => `${d.set && (!all[i - 1] || all[i - 1].set !== d.set) ? `<div class="coi-set" data-coiset="${d.set}"><header><b>${esc(COI_SETS[d.set].title)}</b><span>${esc(COI_SETS[d.set].sub)}${d.set === 'lr' && CFG.uploads.requireLightReach === false ? ' · optional' : ' · required for every partner'}</span></header><div class="coi-body">${coiSetHtml(d.set)}` : ''}<div class="upl" data-upl="${d.cat}"${d.nv ? ' hidden' : ''}>
+      <div class="state-reqs"><h3>📍 Licenses for your states</h3><p class="sub" style="margin:0">Upload your licenses for <b>each state</b> you build in — here’s what each state requires. Cities and counties may also need their own license.</p><div id="o-state-reqs"></div><div class="err" id="o-docs_states-err"></div></div>` +
+      this.uploadDefs().filter(d => !d.stateCard).map((d, i, all) => `${d.set && (!all[i - 1] || all[i - 1].set !== d.set) ? `<div class="coi-set" data-coiset="${d.set}"><header><b>${esc(COI_SETS[d.set].title)}</b><span>${esc(COI_SETS[d.set].sub)}${d.set === 'lr' && CFG.uploads.requireLightReach === false ? ' · optional' : ' · required for every partner'}</span></header><div class="coi-body">${coiSetHtml(d.set)}` : ''}<div class="upl" data-upl="${d.cat}"${d.nv ? ' hidden' : ''}>
         <div class="upl-head"><h3>${esc(d.title)}</h3><span class="badge ${d.req === true ? 'req-b' : 'opt-b'}" data-badge="${d.cat}">${d.req === true ? 'Required' : d.req === 'wc' ? 'If applicable' : d.req === 'cond' ? 'Required*' : 'Optional'}</span></div>
         <p class="desc">${esc(d.desc)}${d.lock ? ' <span class="badge lock-b" style="font-size:10px">Restricted</span>' : ''}</p>${d.extra ? d.extra() : ''}
         ${d.cat === 'w9' ? W9.html() : ''}
@@ -2316,7 +2330,8 @@ const Onb = {
     const key = states.join(',');
     if (key === this._reqKey) return;
     this._reqKey = key;
-    const sr = $('#o-state-reqs'); if (sr) sr.innerHTML = stateReqsHtml(states);
+    this._states = states.slice();
+    const sr = $('#o-state-reqs'); if (sr) { sr.innerHTML = stateReqsHtml(states); this.paintUploads(); }
     const nv = $('[data-upl="osha_cards"]'); if (nv) nv.hidden = states.indexOf('NV') === -1;
   },
 
@@ -2441,7 +2456,7 @@ const Onb = {
     const ok = cat => this.uploads.filter(u => u.category === cat && (u.status === 'ok' || u.status === 'uploading' || u.status === 'queued')).length;
     if (W9.mode === 'online' && W9.pending()) errs.docs_w9 = W9.built ? 'You changed your W-9 answers — click “Create my W-9” again.' : 'Fill out the W-9 and click “Create my W-9”.';
     else if (ok('w9') < 1) errs.docs_w9 = 'Please upload your completed W-9.';
-    if (ok('licenses') < 1) errs.docs_licenses = 'Please upload your license or certification.';
+    (vals.statesServed || []).forEach(st => { if (ok('lic_' + st.toLowerCase()) < 1) errs['docs_lic_' + st.toLowerCase()] = 'Please upload your ' + stateName(st) + ' license(s).'; });
     this.uploadDefs().filter(d => d.set && d.req).forEach(d => {
       const glCat = d.set === 'lr' ? 'lr_gl' : 'insurance_gl';
       if (d.combo && this.incl[d.cat]) { if (ok(glCat) < 1) errs['docs_' + d.cat] = 'Upload the general liability COI first — then you can mark this as included on it.'; return; }
